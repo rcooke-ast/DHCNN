@@ -26,7 +26,7 @@ def get_subpixels(wave, nsubpix=10):
     binsize = get_binsize(wave)
     binlen = 1.0 / np.float64(nsubpix)
     interpwav = (1.0 + ((np.arange(nsubpix) - (0.5 * (nsubpix - 1.0)))[np.newaxis, :] * binlen * binsize[:, np.newaxis] / 2.99792458E5))
-    subwave = (wave.reshape(wave.size, 1) * interpwav).flatten(0)
+    subwave = (wave.reshape(wave.size, 1) * interpwav).flatten()
     return subwave
 
 
