@@ -8,10 +8,8 @@ def simulate_random_dla_Lya(rest_window=30.0, proxqso=0.0):
     rest_window = Number of REST Angstroms to the left and right of the central DLA profile to use
     rest_proxqso = number of REST Angstroms to the left of the QSO to use for generating a DLA (only used if non-zero)
     """
-    filename = '../data/DR1_quasars_master_NODLA.csv'
+    filename = '../data/DR1_quasars_master_trimmed.csv'
     t = Table.read(filename, format='ascii.csv')
-    # Trim the table
-    t_trim = t[np.where( (t['zem_Adopt'].data>2.6) & (t['zem_Adopt'].data<3.4) )]
     # Select a random QSO
     nqso = t_trim['Name_Adopt'].size
     qidx = np.random.randint(0, nqso)
