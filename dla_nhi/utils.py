@@ -102,6 +102,7 @@ def simulate_random_dla_Lya(rest_window=30.0, proxqso=0.0):
     bd = np.where(dat[1].data['STATUS'] == 0)
     if (bd[0].size != 0):
         print("Number of bad pixels = {0:d}".format(bd[0].size))
+    embed()
     exnse = np.random.normal(np.zeros(flue[gd].size), flue[gd]*np.sqrt(1-model[gd]**2))
     # Add this noise to the data
     fluxnew += exnse
