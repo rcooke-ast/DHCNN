@@ -1,42 +1,65 @@
 import numpy as np
+from scipy.special import wofz
+from matplotlib import pyplot as plt
 import astropy.io.fits as fits
 from astropy.table import Table
+from astropy import cosmology
+from pyigm.fN.fnmodel import FNModel
+from pyigm.fN.mockforest import monte_HIcomp
 
 
-def get_binsize(wave, bintype="km/s", maxonly=False):
-    binsize  = np.zeros((2, wave.size))
-    binsizet = wave[1:] - wave[:-1]
-    if bintype == "km/s":
-        binsizet *= 2.99792458E5/wave[:-1]
-    elif bintype == "A":
-        pass
-    elif bintype == "Hz":
-        pass
-    maxbin = np.max(binsizet)
-    binsize[0, :-1], binsize[1, 1:] = binsizet, binsizet
-    binsize[0, -1], binsize[1, 0] = maxbin, maxbin
-    binsize = binsize.min(0)
-    if maxonly:
-        return np.max(binsize)
+def voigt(par, wavein, logn=True):
+    epar = [1215.6701 * 1.0e-8, 0.4164, 6.265E8]  # Note, the wavelength is converted to cm
+    # Column density
+    if logn:
+        cold = 10.0 ** par[0]
     else:
-        return binsize
+        cold = par[0]
+    # Redshift
+    zp1 = par[1] + 1.0
+    wv = epar[0]
+    # Doppler parameter
+    bl = par[2] * wv / 2.99792458E5
+    a = epar[2] * wv * wv / (3.76730313461770655E11 * bl)
+    cns = wv * wv * epar[1] / (bl * 2.002134602291006E12)
+    cne = cold * cns
+    ww = (wavein * 1.0e-8) / zp1
+    v = wv * ww * ((1.0 / ww) - (1.0 / wv)) / bl
+    tau = cne * wofz(v + 1j * a).real
+    return np.exp(-tau)
 
 
-def get_subpixels(wave, nsubpix=10):
-    binsize = get_binsize(wave)
-    binlen = 1.0 / np.float64(nsubpix)
-    interpwav = (1.0 + ((np.arange(nsubpix) - (0.5 * (nsubpix - 1.0)))[np.newaxis, :] * binlen * binsize[:, np.newaxis] / 2.99792458E5))
-    subwave = (wave.reshape(wave.size, 1) * interpwav).flatten()
-    return subwave
+def get_NHI(NHImin=19.2, NHImax=21.0, zmin=2.6, zmax=3.4, rstate=None, seed=None, numgen=100):
 
+    # Get a random state so that the noise and components can be reproduced
+    if seed is not None:
+        rstate = np.random.RandomState(seed)
 
-def generate_wave(wavemin=3200.0, wavemax=5000.0, velstep=2.5, nsubpix=10):
-    npix = np.log10(wavemax/wavemin) / np.log10(1.0+velstep/299792.458)
-    npix = np.int(npix)
-    wave = wavemin*(1.0+velstep/299792.458)**np.arange(npix)
-    # Now generate a subpixellated wavelength grid
-    subwave = get_subpixels(wave, nsubpix=nsubpix)
-    return wave, subwave
+    # Get the CDDF
+    NHI = np.array([12.0, 15.0, 17.0, 18.0, 20.0, 21.0, 21.5, 22.0])
+    sply = np.array([-9.72, -14.41, -17.94, -19.39, -21.28, -22.82, -23.95, -25.50])
+    boost = np.log10(1.6*numgen)  # Artificially scale f(N) so that we get numgen DLAs all at once
+    params = dict(sply=sply+boost)
+    fN_model = FNModel('Hspline', pivots=NHI, param=params, zmnx=(2., 5.))
+    cosmo = cosmology.core.FlatLambdaCDM(70., 0.3)
+
+    # Generate a fake spectrum
+    #print("Note :: I made some changes in pyigm.fn.mockforest.py to avoid convolution and noise")
+    #print("Note :: I made some changes in pyigm.fn.mockforest.py to perform my own subpixellation")
+    HI_comps = monte_HIcomp((zmin, zmax), fN_model, NHI_mnx=(NHImin, NHImax), bfix=None, cosmo=cosmo, rstate=rstate)
+    NHIvals = HI_comps['lgNHI'].data[:numgen]
+    saveit = False
+    if saveit:
+        np.save("../data/NHIvals", NHIvals)
+
+    # Check the result
+    checkit = False
+    if checkit:
+        plt.hist(NHIvals, bins=np.linspace(NHImin, NHImax, numgen//10000), log=True)
+        plt.show()
+
+    # Return the results
+    return NHIvals
 
 
 def simulate_random_dla_Lya(rest_window=30.0, proxqso=0.0):
@@ -55,14 +78,24 @@ def simulate_random_dla_Lya(rest_window=30.0, proxqso=0.0):
     if (proxqso > 0.0):
         wavstr = max(wavstr, (1+zem)*(1215.6701 - proxqso))
     zdla = np.random.uniform(wavstr, (1+zem)*1215.6701)/1215.6701 - 1
-    # Load the data
-    dat = fits.open(qso['Name_Adopt']+'.fits')
-    wave = dat[1].data['WAVE']
-    cont = dat[1].data['CONTINUUM']
-    flux = dat[1].data['FLUX']*cont
-    flue = dat[1].data['ERR']*cont
     # Generate an N(H I) of a DLA from f(N)
     # The range of interest is:
     # 19.3 < log N(H I) < 21.0
     # 2.6 < z < 3.4
+    logNHI = get_NHI(NHImin=19.2, NHImax=21.0)[0]
+    # Load the data
+    dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
+    wave = dat[1].data['WAVE']
+    cont = dat[1].data['CONTINUUM']
+    flux = dat[1].data['FLUX']*cont
+    flue = dat[1].data['ERR']*cont
     # Generate a DLA Lya profile
+    model = voigt([19.2, zdla, 15.0], wave)
+    plt.plot(wave, model, 'k')
+    model = voigt([21.0, zdla, 15.0], wave)
+    plt.plot(wave, model, 'k')
+    plt.show()
+
+
+if __name__ == "__main__":
+    simulate_random_dla_Lya()
