@@ -6,7 +6,7 @@ from astropy.table import Table
 from astropy import cosmology
 from pyigm.fN.fnmodel import FNModel
 from pyigm.fN.mockforest import monte_HIcomp
-
+from IPython import embed
 
 def voigt(par, wavein, logn=True):
     epar = [1215.6701 * 1.0e-8, 0.4164, 6.265E8]  # Note, the wavelength is converted to cm
