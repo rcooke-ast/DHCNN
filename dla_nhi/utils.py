@@ -90,12 +90,27 @@ def simulate_random_dla_Lya(rest_window=30.0, proxqso=0.0):
     flux = dat[1].data['FLUX']*cont
     flue = dat[1].data['ERR']*cont
     # Generate a DLA Lya profile
-    model = voigt([19.2, zdla, 15.0], wave)
-    plt.plot(wave, model, 'k')
-    model = voigt([21.0, zdla, 15.0], wave)
-    plt.plot(wave, model, 'k')
+    model = voigt([logNHI, zdla, 15.0], wave)
+    fluxnew = flux.copy()
+    fluxnew *= model
+    # Determine the extra noise needed to maintain the same flue
+    exnse = np.random.normal(np.zeros(flue.size), flue*(1-model**2))
+    # Add this noise to the data
+    fluxnew += exnse
+    # Plot the result to see if it looks OK
+    dwv = (1+zdla)*rest_window
+    cwv = (1+zdla)*1215.6701
+    ww = np.where((wave>cwv-dwv) & (wave<cwv+dwv))
+    plt.plot(wave[ww],flux[ww],'k-', drawstyle='steps')
+    plt.plot(wave[ww],fluxnew[ww],'r-', drawstyle='steps')
+    plt.plot(wave[ww],flue[ww],'b-', drawstyle='steps')
     plt.show()
-
 
 if __name__ == "__main__":
     simulate_random_dla_Lya()
+    # wave = np.linspace(1170, 1270, 10000)
+    # model = voigt([19.2, 0.0, 15.0], wave)
+    # plt.plot(wave, model, 'k')
+    # model = voigt([21.0, 0.0, 15.0], wave)
+    # plt.plot(wave, model, 'k')
+    # plt.show()
