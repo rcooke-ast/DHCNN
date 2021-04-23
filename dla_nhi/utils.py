@@ -85,25 +85,30 @@ def simulate_random_dla_Lya(rest_window=30.0, proxqso=0.0):
     logNHI = get_NHI(NHImin=19.2, NHImax=21.0)[0]
     # Load the data
     dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
+    dwv = (1+zdla)*rest_window
+    cwv = (1+zdla)*1215.6701
     wave = dat[1].data['WAVE']
-    cont = dat[1].data['CONTINUUM']
-    flux = dat[1].data['FLUX']*cont
-    flue = dat[1].data['ERR']*cont
+    ww = np.where((wave>cwv-dwv) & (wave<cwv+dwv))
+    wave = wave[ww]
+    cont = dat[1].data['CONTINUUM'][ww]
+    flux = dat[1].data['FLUX'][ww] * cont
+    flue = dat[1].data['ERR'][ww] * cont
     # Generate a DLA Lya profile
     model = voigt([logNHI, zdla, 15.0], wave)
     fluxnew = flux.copy()
     fluxnew *= model
     # Determine the extra noise needed to maintain the same flue
-    exnse = np.random.normal(np.zeros(flue.size), flue*(1-model**2))
+    gd = np.where(dat[1].data['STATUS'] == 1)
+    bd = np.where(dat[1].data['STATUS'] == 0)
+    if (bd[0].size != 0):
+        print("Number of bad pixels = {0:d}".format(bd[0].size))
+    exnse = np.random.normal(np.zeros(flue[gd].size), flue[gd]*np.sqrt(1-model[gd]**2))
     # Add this noise to the data
     fluxnew += exnse
     # Plot the result to see if it looks OK
-    dwv = (1+zdla)*rest_window
-    cwv = (1+zdla)*1215.6701
-    ww = np.where((wave>cwv-dwv) & (wave<cwv+dwv))
-    plt.plot(wave[ww],flux[ww],'k-', drawstyle='steps')
-    plt.plot(wave[ww],fluxnew[ww],'r-', drawstyle='steps')
-    plt.plot(wave[ww],flue[ww],'b-', drawstyle='steps')
+    plt.plot(wave,flux,'k-', drawstyle='steps')
+    plt.plot(wave,fluxnew,'r-', drawstyle='steps')
+    plt.plot(wave,flue,'b-', drawstyle='steps')
     plt.show()
 
 if __name__ == "__main__":
