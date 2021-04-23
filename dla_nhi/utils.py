@@ -8,6 +8,7 @@ from pyigm.fN.fnmodel import FNModel
 from pyigm.fN.mockforest import monte_HIcomp
 from IPython import embed
 
+
 def voigt(par, wavein, logn=True):
     epar = [1215.6701 * 1.0e-8, 0.4164, 6.265E8]  # Note, the wavelength is converted to cm
     # Column density
@@ -93,24 +94,30 @@ def simulate_random_dla_Lya(rest_window=30.0, proxqso=0.0):
     cont = dat[1].data['CONTINUUM'][ww]
     flux = dat[1].data['FLUX'][ww] * cont
     flue = dat[1].data['ERR'][ww] * cont
-    # Generate a DLA Lya profile
-    model = voigt([logNHI, zdla, 15.0], wave)
-    fluxnew = flux.copy()
-    fluxnew *= model
-    # Determine the extra noise needed to maintain the same flue
-    gd = np.where(dat[1].data['STATUS'] == 1)
-    bd = np.where(dat[1].data['STATUS'] == 0)
-    if (bd[0].size != 0):
-        print("Number of bad pixels = {0:d}".format(bd[0].size))
-    embed()
-    exnse = np.random.normal(np.zeros(flue[gd].size), flue[gd]*np.sqrt(1-model[gd]**2))
-    # Add this noise to the data
-    fluxnew += exnse
-    # Plot the result to see if it looks OK
-    plt.plot(wave,flux,'k-', drawstyle='steps')
-    plt.plot(wave,fluxnew,'r-', drawstyle='steps')
-    plt.plot(wave,flue,'b-', drawstyle='steps')
-    plt.show()
+    stat = dat[1].data['STATUS'][ww]
+    # Check Continuum/Noise ratio
+    if (cont[cont.size//2]/flue[cont.size//2]) > 10:
+        # Generate a DLA Lya profile
+        model = voigt([logNHI, zdla, 15.0], wave)
+        fluxnew = flux.copy()
+        fluxnew *= model
+        # Determine the extra noise needed to maintain the same flue
+        gd = np.where(stat == 1)
+        bd = np.where(stat != 1)
+        if (bd[0].size != 0):
+            print("Number of bad pixels = {0:d}".format(bd[0].size))
+        # embed()
+        exnse = np.random.normal(np.zeros(flue[gd].size), flue[gd] * np.sqrt(1 - model[gd] ** 2))
+        # Add this noise to the data
+        fluxnew[gd] += exnse
+        # Plot the result to see if it looks OK
+        plt.plot(wave, flux, 'k-', drawstyle='steps')
+        plt.plot(wave, fluxnew, 'r-', drawstyle='steps')
+        plt.plot(wave, flue, 'b-', drawstyle='steps')
+        plt.show()
+    else:
+        print("S/N is too low")
+
 
 if __name__ == "__main__":
     simulate_random_dla_Lya()
