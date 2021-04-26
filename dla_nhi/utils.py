@@ -72,6 +72,7 @@ def simulate_random_dla_Lya(rest_window=30.0, proxqso=0.0):
     t_trim = Table.read(filename, format='ascii.csv')
     # Select a random QSO
     nqso = t_trim['Name_Adopt'].size
+    embed()
     qidx = np.random.randint(0, nqso)
     qso = t_trim[qidx]
     zem = qso['zem_Adopt']
@@ -96,31 +97,39 @@ def simulate_random_dla_Lya(rest_window=30.0, proxqso=0.0):
     flue = dat[1].data['ERR'][ww] * cont
     stat = dat[1].data['STATUS'][ww]
     # Check Continuum/Noise ratio
-    if (cont[cont.size//2]/flue[cont.size//2]) > 10:
-        # Generate a DLA Lya profile
-        model = voigt([logNHI, zdla, 15.0], wave)
-        fluxnew = flux.copy()
-        fluxnew *= model
-        # Determine the extra noise needed to maintain the same flue
-        gd = np.where(stat == 1)
-        bd = np.where(stat != 1)
-        if (bd[0].size != 0):
-            print("Number of bad pixels = {0:d}".format(bd[0].size))
-        # embed()
-        exnse = np.random.normal(np.zeros(flue[gd].size), flue[gd] * np.sqrt(1 - model[gd] ** 2))
-        # Add this noise to the data
-        fluxnew[gd] += exnse
+    if (cont[cont.size//2]/flue[cont.size//2]) < 10:
+        print("Low continuum/noise ratio")
+        #return None, None
+
+    # Generate a DLA Lya profile
+    model = voigt([logNHI, zdla, 15.0], wave)
+    fluxnew = flux.copy()
+    fluxnew *= model
+    # Determine the extra noise needed to maintain the same flue
+    gd = np.where(stat == 1)
+    bd = np.where(stat != 1)
+    if (bd[0].size != 0):
+        print("Number of bad pixels = {0:d}".format(bd[0].size))
+        #return None, None
+    # embed()
+    exnse = np.random.normal(np.zeros(flue[gd].size), flue[gd] * np.sqrt(1 - model[gd] ** 2))
+    # Add this noise to the data
+    fluxnew[gd] += exnse
+    plotit = True
+    if plotit:
         # Plot the result to see if it looks OK
         plt.plot(wave, flux, 'k-', drawstyle='steps')
         plt.plot(wave, fluxnew, 'r-', drawstyle='steps')
         plt.plot(wave, flue, 'b-', drawstyle='steps')
         plt.show()
-    else:
-        print("S/N is too low")
+    return wave, fluxnew
 
 
 if __name__ == "__main__":
-    simulate_random_dla_Lya()
+    wave, flux = simulate_random_dla_Lya()
+    if wave is None:
+        print("There must have been bad pixels, or too low S/N")
+    
     # wave = np.linspace(1170, 1270, 10000)
     # model = voigt([19.2, 0.0, 15.0], wave)
     # plt.plot(wave, model, 'k')

@@ -2,6 +2,8 @@ import os
 import time
 import pickle
 import numpy as np
+from astropy.table import Table
+import astropy.io.fits as fits
 from pyigm.fN.fnmodel import FNModel
 from pyigm.fN.mockforest import monte_HIcomp
 from scipy.special import wofz
@@ -25,17 +27,6 @@ from contextlib import redirect_stdout
 velstep = 2.5    # Pixel size in km/s
 spec_len = 256
 spec_ext = 64
-
-
-# Define custom loss
-def mse_mask():
-    # Create a loss function that adds the MSE loss to the mean of all squared activations of a specific layer
-    def loss(y_true, y_pred):
-        epsilon = K.ones_like(y_true[0,:])*0.00001
-        return K.mean( (y_true/(y_true+epsilon)) * K.square(y_pred - y_true), axis=-1)
-        #return K.mean(K.square(y_pred - y_true), axis=-1)
-    # Return a function
-    return loss
 
 
 def get_available_gpus():
@@ -98,7 +89,7 @@ def hyperparam_orig(mnum):
     for key in allowed_hpars.keys():
         hyperpar[key] = np.random.choice(allowed_hpars[key])
     # Save these parameters and return the hyperpar
-    save_obj(hyperpar, 'fit_data/simple/model_{0:03d}'.format(mnum))
+    save_obj(hyperpar, 'fit_data/model_{0:03d}'.format(mnum))
     return hyperpar
 
 
@@ -147,7 +138,7 @@ def hyperparam(mnum):
     for key in allowed_hpars.keys():
         hyperpar[key] = np.random.choice(allowed_hpars[key])
     # Save these parameters and return the hyperpar
-    save_obj(hyperpar, 'fit_data/simple/model_{0:03d}'.format(mnum))
+    save_obj(hyperpar, 'fit_data/model_{0:03d}'.format(mnum))
     return hyperpar
 
 
@@ -167,49 +158,64 @@ def voigt(wave, params):
     return np.exp(-1.0*tau)
 
 
-def make_spectra(NHI, zabs, bval, nsubpix=10, szstr=None, numspec=1):
-    if szstr is None:
-        szstr = spec_len+spec_ext
-    nspec = NHI.size
-    vprofs = np.zeros((szstr, NHI.size))
-    for ss in range(nspec):
-        if ss%10000 == 0:
-            print(ss, nspec)
-        lam = 1215.6701*(1+zabs[ss])
-        wmin = lam * (1 - 200*velstep/299792.458)
-        wmax = lam * (1 + 200*velstep/299792.458)
-        wave, subwave = generate_wave(wavemin=wmin, wavemax=wmax, velstep=velstep, nsubpix=nsubpix)
-        amn = np.argmin(np.abs(subwave-lam))
-        flux = voigt(subwave[amn-nsubpix*szstr//2: amn+nsubpix*szstr//2], [NHI[ss], zabs[ss], bval[ss]])
-        vprofs[:, ss] = rebin_subpix(flux, nsubpix=nsubpix)
-    suffix = "zem3_nsubpix{0:d}_numspec{1:d}".format(nsubpix, numspec)
-    np.save("train_data/svoigt_prof_{0:s}".format(suffix), vprofs)
-    np.save("train_data/svoigt_Nval_{0:s}".format(suffix), NHI)
-    np.save("train_data/svoigt_bval_{0:s}".format(suffix), bval/velstep)
+def generate_dataset(rest_window=30):
+    """
+    rest_window = Number of REST Angstroms to the left and right of the central DLA profile to use - this is assumed to be an int, for file naming purposes
+    rest_proxqso = number of REST Angstroms to the left of the QSO to use for generating a DLA (only used if non-zero)
+    """
+    filename = '../data/DR1_quasars_master_trimmed.csv'
+    t_trim = Table.read(filename, format='ascii.csv')
+    # Select a random QSO
+    nqso = t_trim['Name_Adopt'].size
+    # Go through each QSO one at a time
+
+    # Just get the size of the data first
+    maxsz = 0
+    for qq in range(nqso):
+        qso = t_trim[qq]
+        zem = qso['zem_Adopt']
+        # Load the data
+        dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
+        wvmax = (1+zem)*(1215.6701+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
+        wvmin = (1+2.5)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
+        wave = dat[1].data['WAVE']
+        ww = np.where((wave > wvmin) & (wave < wvmax))
+        sz = wave[ww].size
+        if sz > maxsz: maxsz = sz
+        stat = dat[1].data['STATUS'][ww]
+        bd = np.where(stat != 1)
+        if bd[0].size != 0:
+            print("Number of bad pixels in QSO {0:d} = {1:d}".format(qq, bd[0].size))
+
+    # Generate the data arrays and insert the data
+    allWave = np.zeros((maxsz, nqso))
+    allFlux = np.zeros((maxsz, nqso))
+    allFlue = np.zeros((maxsz, nqso))
+    allzem  = np.zeros(nqso)
+    for qq in range(nqso):
+        qso = t_trim[qq]
+        zem = qso['zem_Adopt']
+        allzem[qq] = zem
+        # Load the data
+        dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
+        wvmax = (1+zem)*(1215.6701+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
+        wvmin = (1+2.5)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
+        wave = dat[1].data['WAVE']
+        ww = np.where((wave > wvmin) & (wave < wvmax))
+        sz = wave[ww].size
+        cont = dat[1].data['CONTINUUM'][ww]
+        allWave[:sz,qq] = wave[ww].copy()
+        allFlux[:sz,qq] = dat[1].data['FLUX'][ww] * cont
+        allFlue[:sz,qq] = dat[1].data['ERR'][ww] * cont
+    # Save the data
+    np.save("../data/train_data/wave_{0:d}.npy".format(rest_window), allWave)
+    np.save("../data/train_data/flux_{0:d}.npy".format(rest_window), allFlux)
+    np.save("../data/train_data/flue_{0:d}.npy".format(rest_window), allFlue)
+    np.save("../data/train_data/zem_{0:d}.npy".format(rest_window), allzem)
     return
 
 
-def generate_dataset(zem=3.0, snr=0, seed=1234, ftrain=0.9, nsubpix=10, numspec=1000):
-    # Setup params
-    rstate = np.random.RandomState(seed)
-    zmin = 1026.0*(1+zem)/1215.6701 - 1
-
-    # Get the CDDF
-    NHIp = np.array([12.0, 15.0, 17.0, 18.0, 20.0, 21.0, 21.5, 22.0])
-    sply = np.array([-9.72, -14.41, -17.94, -19.39, -21.28, -22.82, -23.95, -25.50])
-    params = dict(sply=sply)
-    NHI, zabs, bval = np.array([]), np.array([]), np.array([])
-    for ss in range(numspec):
-        fN_model = FNModel('Hspline', pivots=NHIp, param=params, zmnx=(2., 5.))
-        HI_comps = monte_HIcomp((zmin, zem), fN_model, NHI_mnx=(12., 18.), rstate=rstate)
-        # Extract/store information
-        NHI = np.append(NHI, HI_comps['lgNHI'].data)
-        zabs = np.append(zabs, HI_comps['z'].data)
-        bval = np.append(bval, HI_comps['bval'].value)
-    make_spectra(NHI, zabs, bval, nsubpix=nsubpix, numspec=numspec)
-
-
-def load_dataset(zem=3.0, snr=0, ftrain=0.9):
+def load_dataset(zem=3.0, ftrain=0.9):
     zstr = "zem{0:.2f}".format(zem)
     fdata = np.load("train_data/svoigt_prof_zem3_nsubpix10_numspec1000.npy").T
     Nlabel = np.load("train_data/svoigt_Nval_zem3_nsubpix10_numspec1000.npy")
@@ -224,10 +230,10 @@ def load_dataset(zem=3.0, snr=0, ftrain=0.9):
     testX = fdata[ntrain:, :]
     testN = Nlabel[ntrain:]
     testb = blabel[ntrain:]
-    return trainX, trainN, trainb, testX, testN, testb
+    return trainX, testX
 
 
-def yield_data(data, Nlabels, blabels, batch_sz, maskval=0.0):
+def yield_data(data, Nlabels, batch_sz):
     cntr_batch = 0
     cenpix = (spec_len+spec_ext)//2
     ll = np.arange(batch_sz).repeat(spec_len)
@@ -239,19 +245,9 @@ def yield_data(data, Nlabels, blabels, batch_sz, maskval=0.0):
         indict['input_1'] = X_batch.copy()
         z_batch = spec_len//2 - cenpix + pertrb.copy()
         # Extract the relevant bits of information
-        yld_N = Nlabels[cntr_batch:cntr_batch+batch_sz]
-        yld_z = z_batch
-        yld_b = blabels[cntr_batch:cntr_batch+batch_sz]
-        # Mask
-        if True:
-            wmsk = np.where(X_batch[:, spec_len//2, 0] > 0.95)
-            yld_N[wmsk] = maskval
-            yld_z[wmsk] = maskval  # Note, this will mask true zeros in the yld_z array
-            yld_b[wmsk] = maskval
+        yld_NHI = Nlabels[cntr_batch:cntr_batch+batch_sz]
         # Store output
-        outdict = {'output_N': yld_N,
-                   'output_z': yld_z,
-                   'output_b': yld_b}
+        outdict = {'output_N': yld_NHI}
 
 #        pdb.set_trace()
         yield (indict, outdict)
@@ -314,13 +310,12 @@ def build_model_simple(hyperpar):
 
 
 # fit and evaluate a model
-def evaluate_model(trainX, trainN, trainb,
-                   testX, testN, testb, hyperpar,
-                   mnum, epochs=10, verbose=1):
+def evaluate_model(trainX, testX,
+                   hyperpar, mnum, epochs=10, verbose=1):
     #yield_data(trainX, trainN, trainb)
     #assert(False)
     filepath = os.path.dirname(os.path.abspath(__file__))
-    model_name = '/fit_data/simple/model_{0:03d}'.format(mnum)
+    model_name = '/fit_data/model_{0:03d}'.format(mnum)
     ngpus = len(get_available_gpus())
     # Construct network
     if ngpus > 1:
@@ -362,15 +357,7 @@ def evaluate_model(trainX, trainN, trainb,
         pngname = filepath + model_name + '.png'
         plot_model(model, to_file=pngname)
     # Compile
-    masking = True
-    if masking:
-        loss = {'output_N': mse_mask(),
-                'output_z': mse_mask(),
-                'output_b': mse_mask()}
-    else:
-        loss = {'output_N': 'mse',
-                'output_z': 'mse',
-                'output_b': 'mse'}
+    loss = {'output_NHI': 'mse'}
     decay = hyperpar['lr_decay']*hyperpar['learning_rate']/hyperpar['num_epochs']
     optadam = Adam(lr=hyperpar['learning_rate'], decay=decay)
     gpumodel.compile(loss=loss, optimizer=optadam, metrics=['mean_squared_error'])
@@ -382,76 +369,21 @@ def evaluate_model(trainX, trainN, trainb,
     csv_logger = CSVLogger(csv_name, append=True)
     # Fit network
     gpumodel.fit_generator(
-        yield_data(trainX, trainN, trainb, hyperpar['batch_size']),
+        yield_data(trainX, trainNHI, hyperpar['batch_size']),
         steps_per_epoch=hyperpar['num_batch_train'],  # Total number of batches (i.e. num data/batch size)
         epochs=epochs, verbose=verbose,
         callbacks=[checkpointer, csv_logger],
-        validation_data=yield_data(testX, testN, testb, hyperpar['batch_size']),
+        validation_data=yield_data(testX, testNHI, hyperpar['batch_size']),
         validation_steps=hyperpar['num_batch_validate'])
 
     gpumodel.save(sav_name)
 
     # Evaluate model
 #    _, accuracy
-    accuracy = gpumodel.evaluate_generator(yield_data(testX, testN, testb, hyperpar['batch_size']),
+    accuracy = gpumodel.evaluate_generator(yield_data(testX, testNHI, hyperpar['batch_size']),
                                            steps=testX.shape[0],
                                            verbose=0)
     return accuracy, gpumodel.metrics_names
-
-
-def restart_model(model_name, trainX, trainN, trainb,
-                   testX, testN, testb,
-                   epochs=10, verbose=1, masking=True):
-    filepath = os.path.dirname(os.path.abspath(__file__))+'/'
-    # Load model
-    loadname = filepath + 'fit_data/' + model_name + '.hdf5'
-    model = load_model(loadname, compile=False)
-    # Make this work on multiple GPUs
-    gpumodel = multi_gpu_model(model, gpus=4)
-    # Compile model
-    if masking:
-        loss = {'N_output': mse_mask(),
-                'z_output': mse_mask(),
-                'b_output': mse_mask()}
-    else:
-        loss = {'N_output': 'mse',
-                'z_output': 'mse',
-                'b_output': 'mse'}
-    gpumodel.compile(loss=loss, optimizer='adam', metrics=['mean_squared_error'])
-    # Initialise callbacks
-    ckp_name = filepath + model_name + '_chkp_restart.hdf5'
-    sav_name = filepath + model_name + '_save_restart.hdf5'
-    csv_name = filepath + model_name + '_restart.log'
-    checkpointer = ModelCheckpoint(filepath=ckp_name, verbose=1, save_best_only=True)
-    csv_logger = CSVLogger(csv_name, append=True)
-    # Fit network
-    gpumodel.fit_generator(
-        yield_data(trainX, trainN, trainb),
-        steps_per_epoch=2000,  # Total number of batches (i.e. num data/batch size)
-        epochs=epochs, verbose=verbose,
-        callbacks=[checkpointer, csv_logger],
-        validation_data=yield_data(testX, testN, testb),
-        validation_steps=200)
-
-    gpumodel.save(sav_name)
-
-    # Evaluate model
-    #    _, accuracy
-    accuracy = gpumodel.evaluate_generator(yield_data(testX, testN, testb),
-                                           steps=testX.shape[0],
-                                           verbose=0)
-    return accuracy, gpumodel.metrics_names
-
-
-# Gold standard in cross-validation
-# from sklearn.model_selection import StratifiedKFold
-# seed = 7
-# np.random.seed(seed)
-# kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=seed)
-# for train, test in kfold.split(X, Y):
-#     model.fit(X[train], Y[train], epochs=150, batch_size=10, verbose=0)
-#     # evaluate the model
-#     scores = model.evaluate(X[test], Y[test], verbose=0)
 
 
 # summarize scores
@@ -463,22 +395,16 @@ def summarize_results(scores):
 
 
 # Detect features in a dataset
-def localise_features(mnum, repeats=3, restart=False):
+def localise_features(mnum, repeats=3):
     # Generate hyperparameters
     hyperpar = hyperparam(mnum)
     # load data
-    trainX, trainN, trainb,\
-    testX, testN, testb = load_dataset()
+    trainX, testX = load_dataset()
     # repeat experiment
     allscores = dict({})
     for r in range(repeats):
-        if restart:
-            model_name = 'svoigt_speclen256_masked_save'
-            scores, names = restart_model(model_name, trainX, trainN, trainb,
-                                          testX, testN, testb)
-        else:
-            scores, names = evaluate_model(trainX, trainN, trainb,
-                                           testX, testN, testb, hyperpar, mnum, epochs=hyperpar['num_epochs'])
+        scores, names = evaluate_model(trainX, testX,
+                                       hyperpar, mnum, epochs=hyperpar['num_epochs'])
         if r == 0:
             for name in names:
                 allscores[name] = []
@@ -491,8 +417,8 @@ def localise_features(mnum, repeats=3, restart=False):
     # Summarize results
     summarize_results(allscores)
 
-# Set the number of epochs
-if False:
+# Run the code...
+if True:
     # Generate data
     generate_dataset()
 else:
