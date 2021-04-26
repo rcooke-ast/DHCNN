@@ -74,7 +74,7 @@ def hyperparam_orig(mnum):
                          l2_regpen          = [0.0],
                          dropout_prob       = [0.0],
                          num_epochs         = [100],
-                         batch_size         = [200],
+                         batch_size         = [32],
                          num_batch_train    = [128],
                          num_batch_validate = [32],
                          # Number of filters in each convolutional layer
