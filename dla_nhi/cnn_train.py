@@ -406,7 +406,7 @@ def localise_features(mnum, repeats=3):
     allscores = dict({})
     for r in range(repeats):
         scores, names = evaluate_model(trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ,
-                                       hyperpar, mnum, epochs=hyperpar['num_epochs'], verbose=2)
+                                       hyperpar, mnum, epochs=hyperpar['num_epochs'], verbose=1)
         if r == 0:
             for name in names:
                 allscores[name] = []
