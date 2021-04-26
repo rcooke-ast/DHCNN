@@ -52,10 +52,10 @@ def hyperparam_orig(mnum):
                          lr_decay           = [0.0],
                          l2_regpen          = [0.0],
                          dropout_prob       = [0.0],
-                         num_epochs         = [10],
-                         batch_size         = [1000],
-                         num_batch_train    = [200],
-                         num_batch_validate = [20],
+                         num_epochs         = [100],
+                         batch_size         = [200],
+                         num_batch_train    = [128],
+                         num_batch_validate = [32],
                          # Number of filters in each convolutional layer
                          conv_filter_1 = [128],
                          conv_filter_2 = [128],
@@ -73,14 +73,12 @@ def hyperparam_orig(mnum):
                          pool_kernel_2 = [2],
                          pool_kernel_3 = [2],
                          # Pooling stride
-                         pool_stride_1 = [1, 2, 3],
-                         pool_stride_2 = [1, 2, 3],
-                         pool_stride_3 = [1, 2, 3],
+                         pool_stride_1 = [1],
+                         pool_stride_2 = [1],
+                         pool_stride_3 = [1],
                          # Fully connected layers
                          fc1_neurons   = [4096],
-                         fc2_N_neurons = [32, 64, 128, 256],
-                         fc2_z_neurons = [32, 64, 128, 256],
-                         fc2_b_neurons = [32, 64, 128, 256],
+                         fc2_N_neurons = [256]
                          )
     # Generate dictionary of values
     hyperpar = dict({})
@@ -128,8 +126,6 @@ def hyperparam(mnum):
                          # Fully connected layers
                          fc1_neurons   = [256, 512, 1024, 2048],
                          fc2_N_neurons = [32, 64, 128, 256],
-                         fc2_z_neurons = [32, 64, 128, 256],
-                         fc2_b_neurons = [32, 64, 128, 256],
                          )
     # Generate dictionary of values
     hyperpar = dict({})
@@ -274,8 +270,6 @@ def build_model_simple(hyperpar):
     # Extract parameters
     fc1_neurons = hyperpar['fc1_neurons']
     fc2_N_neurons = hyperpar['fc2_N_neurons']
-    fc2_b_neurons = hyperpar['fc2_b_neurons']
-    fc2_z_neurons = hyperpar['fc2_z_neurons']
     conv1_kernel = hyperpar['conv_kernel_1']
     conv2_kernel = hyperpar['conv_kernel_2']
     conv3_kernel = hyperpar['conv_kernel_3']
