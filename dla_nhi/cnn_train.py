@@ -3,9 +3,7 @@ import pickle
 import numpy as np
 from astropy.table import Table
 import astropy.io.fits as fits
-# from pyigm.fN.fnmodel import FNModel
-# from pyigm.fN.mockforest import monte_HIcomp
-from scipy.special import wofz
+from utils import voigt
 
 import tensorflow as tf
 from tensorflow.python.client import device_lib
@@ -23,8 +21,10 @@ from keras import regularizers
 from contextlib import redirect_stdout
 
 velstep = 2.5    # Pixel size in km/s
-spec_len = 256
-spec_ext = 64
+spec_len = 4096  # Number of pixels to use
+zdla_min, zdla_max = 2.5, 3.4
+NHI_min, NHI_max = 19.2, 21.0
+restwin = 0.5*spec_len*velstep*1215.6701/299792.458  # Rest window in angstroms (the full window size is twice this)
 
 
 def get_available_gpus():
@@ -140,23 +140,7 @@ def hyperparam(mnum):
     return hyperpar
 
 
-def voigt(wave, params):
-    p0, p1, p2 = params
-    lam, fvl, gam = 1215.6701, 0.4164, 6.265E8
-    cold = 10.0**p0
-    zp1=p1+1.0
-    wv=lam*1.0e-8
-    bl=p2*wv/2.99792458E5
-    a=gam*wv*wv/(3.76730313461770655E11*bl)
-    cns=wv*wv*fvl/(bl*2.002134602291006E12)
-    cne=cold*cns
-    ww=(wave*1.0e-8)/zp1
-    v=wv*ww*((1.0/ww)-(1.0/wv))/bl
-    tau = cne*wofz(v + 1j * a).real
-    return np.exp(-1.0*tau)
-
-
-def generate_dataset(rest_window=30):
+def generate_dataset(rest_window=30.0):
     """
     rest_window = Number of REST Angstroms to the left and right of the central DLA profile to use - this is assumed to be an int, for file naming purposes
     rest_proxqso = number of REST Angstroms to the left of the QSO to use for generating a DLA (only used if non-zero)
@@ -175,7 +159,7 @@ def generate_dataset(rest_window=30):
         # Load the data
         dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
         wvmax = (1+zem)*(1215.6701+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
-        wvmin = (1+2.5)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
+        wvmin = (1+zdla_min)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
         wave = dat[1].data['WAVE']
         ww = np.where((wave > wvmin) & (wave < wvmax))
         sz = wave[ww].size
@@ -184,11 +168,14 @@ def generate_dataset(rest_window=30):
         bd = np.where(stat != 1)
         if bd[0].size != 0:
             print("Number of bad pixels in QSO {0:d} = {1:d}".format(qq, bd[0].size))
-
+        gd = np.where(stat == 1)
+        if gd[0].size < spec_len:
+            print("WARNING :: Not enough good pixels in QSO {0:d}".format(qq))
     # Generate the data arrays and insert the data
     allWave = np.zeros((maxsz, nqso))
     allFlux = np.zeros((maxsz, nqso))
     allFlue = np.zeros((maxsz, nqso))
+    allStat = np.zeros((maxsz, nqso))
     allzem  = np.zeros(nqso)
     for qq in range(nqso):
         qso = t_trim[qq]
@@ -197,61 +184,88 @@ def generate_dataset(rest_window=30):
         # Load the data
         dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
         wvmax = (1+zem)*(1215.6701+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
-        wvmin = (1+2.5)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
+        wvmin = (1+zdla_min)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
         wave = dat[1].data['WAVE']
         ww = np.where((wave > wvmin) & (wave < wvmax))
         sz = wave[ww].size
         cont = dat[1].data['CONTINUUM'][ww]
-        allWave[:sz,qq] = wave[ww].copy()
-        allFlux[:sz,qq] = dat[1].data['FLUX'][ww] * cont
-        allFlue[:sz,qq] = dat[1].data['ERR'][ww] * cont
+        allWave[:sz, qq] = wave[ww].copy()
+        allFlux[:sz, qq] = dat[1].data['FLUX'][ww] * cont
+        allFlue[:sz, qq] = dat[1].data['ERR'][ww] * cont
+        allStat[:sz, qq] = dat[1].data['STATUS'][ww]
     # Save the data
-    np.save("../data/train_data/wave_{0:d}.npy".format(rest_window), allWave)
-    np.save("../data/train_data/flux_{0:d}.npy".format(rest_window), allFlux)
-    np.save("../data/train_data/flue_{0:d}.npy".format(rest_window), allFlue)
-    np.save("../data/train_data/zem_{0:d}.npy".format(rest_window), allzem)
+    np.save("../data/train_data/wave_{0:.2f}.npy".format(rest_window), allWave)
+    np.save("../data/train_data/flux_{0:.2f}.npy".format(rest_window), allFlux)
+    np.save("../data/train_data/flue_{0:.2f}.npy".format(rest_window), allFlue)
+    np.save("../data/train_data/stat_{0:.2f}.npy".format(rest_window), allStat)
+    np.save("../data/train_data/zem_{0:.2f}.npy".format(rest_window), allzem)
     return
 
 
-def load_dataset(zem=3.0, ftrain=0.9):
-    zstr = "zem{0:.2f}".format(zem)
-    fdata = np.load("train_data/svoigt_prof_zem3_nsubpix10_numspec1000.npy").T
-    Nlabel = np.load("train_data/svoigt_Nval_zem3_nsubpix10_numspec1000.npy")
-    blabel = np.load("train_data/svoigt_bval_zem3_nsubpix10_numspec1000.npy")
-    zlabel = ((spec_len+spec_ext)//2)*np.ones(Nlabel.size)
-    ntrain = int(ftrain*fdata.shape[0])
+def load_dataset(rest_window=30.0, ftrain=0.9):
+    allWave = np.load("../data/train_data/wave_{0:.2f}.npy".format(rest_window))
+    allFlux = np.load("../data/train_data/flux_{0:.2f}.npy".format(rest_window))
+    allFlue = np.load("../data/train_data/flue_{0:.2f}.npy".format(rest_window))
+    allStat = np.load("../data/train_data/stat_{0:.2f}.npy".format(rest_window))
+    allzem = np.load("../data/train_data/zem_{0:.2f}.npy".format(rest_window))
+    ntrain = int(ftrain*allzem.shape[0])
     # Select the training data
-    trainX = fdata[:ntrain, :]
-    trainN = Nlabel[:ntrain]
-    trainb = blabel[:ntrain]
+    trainW = allWave[:, :ntrain]
+    trainF = allFlux[:, :ntrain]
+    trainE = allFlue[:, :ntrain]
+    trainS = allStat[:, :ntrain]
+    trainZ = allzem[:ntrain]
     # Select the test data
-    testX = fdata[ntrain:, :]
-    testN = Nlabel[ntrain:]
-    testb = blabel[ntrain:]
-    return trainX, testX
+    testW = allWave[:, ntrain:]
+    testF = allFlux[:, ntrain:]
+    testE = allFlue[:, ntrain:]
+    testS = allStat[:, ntrain:]
+    testZ = allzem[:ntrain]
+    return trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ
 
 
-def yield_data(data, Nlabels, batch_sz):
+def yield_data(wave, flux, flue, stat, zem, batch_sz):
     cntr_batch = 0
-    cenpix = (spec_len+spec_ext)//2
-    ll = np.arange(batch_sz).repeat(spec_len)
     while True:
         indict = ({})
-        pertrb = np.random.randint(0, spec_ext, batch_sz)
-        pp = pertrb.reshape((batch_sz, 1)).repeat(spec_len, axis=1) + np.arange(spec_len)
-        X_batch = data[ll+cntr_batch, pp.flatten()].reshape((batch_sz, spec_len, 1))
+        toobad = 0
+        qso = cntr_batch
+        while True:
+            zdmin = max(zdla_min, ((wave[0, qso]+restwin)/1215.6701) - 1.0)  # Can't have a DLA below the data for this QSO
+            zdmax = min(zdla_max, zem[qso])  # Can't have a DLA above the QSO redshift
+            dla = np.random.uniform(zdmin, zdmax)
+            amin = np.argmin(np.abs(wave[:, qso] - 1215.6701 * (1 + dla)))
+            imin = amin - spec_len // 2
+            imax = amin - spec_len // 2 + spec_len
+            bd = np.where(stat[imin:imax, qso] != 1)
+            if bd[0].size == 0:
+                break
+            elif toobad > 10:
+                # Can't find anything in this QSO, move onto the next one, reset the toobad counter
+                qso += 1
+                cntr_batch += 1
+                if cntr_batch >= zem.shape[0]:
+                    qso = 0
+                    cntr_batch = 0
+                toobad = 0
+            else:
+                toobad += 1
+        # We've found a good system, now extract the data
+        X_batch = np.zeros((batch_sz, spec_len))
+        yld_NHI = np.random.uniform(NHI_min, NHI_max, batch_sz)
+        for mm in range(batch_sz):
+            model = voigt([yld_NHI[mm], dla, 15.0], wave[imin:imax, qso])
+            # Determine the extra noise needed to maintain the same flue
+            exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model**2))
+            # Add this noise to the data
+            X_batch[mm, :] = flux[imin:imax, qso]*model + exnse
         indict['input_1'] = X_batch.copy()
-        z_batch = spec_len//2 - cenpix + pertrb.copy()
-        # Extract the relevant bits of information
-        yld_NHI = Nlabels[cntr_batch:cntr_batch+batch_sz]
         # Store output
         outdict = {'output_N': yld_NHI}
-
-#        pdb.set_trace()
         yield (indict, outdict)
 
-        cntr_batch += batch_sz
-        if cntr_batch >= data.shape[0]-batch_sz:
+        cntr_batch += 1
+        if cntr_batch >= zem.shape[0]:
             cntr_batch = 0
 
 
@@ -308,7 +322,7 @@ def build_model_simple(hyperpar):
 
 
 # fit and evaluate a model
-def evaluate_model(trainX, testX,
+def evaluate_model(trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ,
                    hyperpar, mnum, epochs=10, verbose=1):
     #yield_data(trainX, trainN, trainb)
     #assert(False)
@@ -367,19 +381,19 @@ def evaluate_model(trainX, testX,
     csv_logger = CSVLogger(csv_name, append=True)
     # Fit network
     gpumodel.fit_generator(
-        yield_data(trainX, trainNHI, hyperpar['batch_size']),
+        yield_data(trainW, trainF, trainE, trainS, trainZ, hyperpar['batch_size']),
         steps_per_epoch=hyperpar['num_batch_train'],  # Total number of batches (i.e. num data/batch size)
         epochs=epochs, verbose=verbose,
         callbacks=[checkpointer, csv_logger],
-        validation_data=yield_data(testX, testNHI, hyperpar['batch_size']),
+        validation_data=yield_data(testW, testF, testE, testS, testZ, hyperpar['batch_size']),
         validation_steps=hyperpar['num_batch_validate'])
 
     gpumodel.save(sav_name)
 
     # Evaluate model
 #    _, accuracy
-    accuracy = gpumodel.evaluate_generator(yield_data(testX, testNHI, hyperpar['batch_size']),
-                                           steps=testX.shape[0],
+    accuracy = gpumodel.evaluate_generator(yield_data(testW, testF, testE, testS, testZ, hyperpar['batch_size']),
+                                           steps=testZ.shape[0],
                                            verbose=0)
     return accuracy, gpumodel.metrics_names
 
@@ -397,11 +411,11 @@ def localise_features(mnum, repeats=3):
     # Generate hyperparameters
     hyperpar = hyperparam(mnum)
     # load data
-    trainX, testX = load_dataset()
+    trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ = load_dataset(rest_window=restwin)
     # repeat experiment
     allscores = dict({})
     for r in range(repeats):
-        scores, names = evaluate_model(trainX, testX,
+        scores, names = evaluate_model(trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ,
                                        hyperpar, mnum, epochs=hyperpar['num_epochs'])
         if r == 0:
             for name in names:
@@ -418,7 +432,7 @@ def localise_features(mnum, repeats=3):
 # Run the code...
 if True:
     # Generate data
-    generate_dataset()
+    generate_dataset(rest_window=restwin)
 else:
     # Once the data exist, run the experiment
     m_init = 0
