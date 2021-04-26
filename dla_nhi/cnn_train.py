@@ -6,17 +6,17 @@ import astropy.io.fits as fits
 from utils import voigt
 
 from tensorflow.python.client import device_lib
-from keras.utils import plot_model
+#from keras.utils import plot_model, multi_gpu_model
 from tensorflow.keras.utils import multi_gpu_model
-from keras.callbacks import ModelCheckpoint, CSVLogger
-from keras.optimizers import Adam
-from keras.models import Model, load_model
-from keras.layers import Input
-from keras.layers import Dense
-from keras.layers.convolutional import Conv1D
-from keras.layers.convolutional import MaxPooling1D
-from keras.layers import Dropout, Flatten
-from keras import regularizers
+from tensorflow.keras.callbacks import ModelCheckpoint, CSVLogger
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers.convolutional import Conv1D
+from tensorflow.keras.layers.convolutional import MaxPooling1D
+from tensorflow.keras.layers import Dropout, Flatten
+from tensorflow.keras import regularizers
 from contextlib import redirect_stdout
 
 velstep = 2.5    # Pixel size in km/s
