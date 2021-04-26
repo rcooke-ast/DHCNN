@@ -5,10 +5,7 @@ from astropy.table import Table
 import astropy.io.fits as fits
 from utils import voigt
 
-try:
-    from tensorflow.python.client import device_lib
-except AttributeError:
-    from tensorflow.python.client import device_lib
+from tensorflow.python.client import device_lib
 import keras.backend as K
 from keras.utils import plot_model, multi_gpu_model
 from keras.callbacks import ModelCheckpoint, CSVLogger
