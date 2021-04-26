@@ -6,8 +6,8 @@ import astropy.io.fits as fits
 from utils import voigt
 
 from tensorflow.python.client import device_lib
-import keras.backend as K
-from keras.utils import plot_model, multi_gpu_model
+from keras.utils import plot_model
+from tensorflow.keras.utils import multi_gpu_model
 from keras.callbacks import ModelCheckpoint, CSVLogger
 from keras.optimizers import Adam
 from keras.models import Model, load_model
@@ -317,6 +317,7 @@ def evaluate_model(trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, 
     filepath = os.path.dirname(os.path.abspath(__file__))
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
     ngpus = len(get_available_gpus())
+    print("Number of GPUS = {0:d}".format(ngpus))
     # Construct network
     if ngpus > 1:
         model = build_model_simple(hyperpar)
