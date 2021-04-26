@@ -410,14 +410,15 @@ def summarize_results(scores):
 # Detect features in a dataset
 def localise_features(mnum, repeats=3):
     # Generate hyperparameters
-    hyperpar = hyperparam(mnum)
+    hyperpar = hyperparam_orig(0)
+    #hyperpar = hyperparam(mnum)
     # load data
     trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ = load_dataset(rest_window=restwin)
     # repeat experiment
     allscores = dict({})
     for r in range(repeats):
         scores, names = evaluate_model(trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ,
-                                       hyperpar, mnum, epochs=hyperpar['num_epochs'])
+                                       hyperpar, mnum, epochs=hyperpar['num_epochs'], verbose=2)
         if r == 0:
             for name in names:
                 allscores[name] = []
@@ -440,11 +441,12 @@ else:
     # Once the data exist, run the experiment
     m_init = 0
     mnum = m_init
-    while True:
-        try:
-            localise_features(mnum, repeats=1)
-        except ValueError:
-            continue
-        mnum += 1
-        if mnum >= m_init+1000:
-            break
+    localise_features(mnum, repeats=1)
+    # while True:
+    #     try:
+    #         localise_features(mnum, repeats=1)
+    #     except ValueError:
+    #         continue
+    #     mnum += 1
+    #     if mnum >= m_init+1000:
+    #         break
