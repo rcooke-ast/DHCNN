@@ -1,13 +1,11 @@
 import os
-import time
 import pickle
 import numpy as np
 from astropy.table import Table
 import astropy.io.fits as fits
-from pyigm.fN.fnmodel import FNModel
-from pyigm.fN.mockforest import monte_HIcomp
+# from pyigm.fN.fnmodel import FNModel
+# from pyigm.fN.mockforest import monte_HIcomp
 from scipy.special import wofz
-from utilities import generate_wave, rebin_subpix
 
 import tensorflow as tf
 from tensorflow.python.client import device_lib
