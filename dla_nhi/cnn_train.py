@@ -262,7 +262,7 @@ def yield_data(wave, flux, flue, stat, zem, batch_sz):
             X_batch[mm, :] = flux[imin:imax, qso]*model + exnse
         indict['input_1'] = X_batch.copy()
         # Store output
-        outdict = {'output_N': yld_NHI}
+        outdict = {'output_NHI': yld_NHI}
         yield (indict, outdict)
 
         cntr_batch += 1
