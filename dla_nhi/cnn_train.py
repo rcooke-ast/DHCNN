@@ -5,7 +5,6 @@ from astropy.table import Table
 import astropy.io.fits as fits
 from utils import voigt
 
-import tensorflow as tf
 from tensorflow.python.client import device_lib
 import keras.backend as K
 from keras.utils import plot_model, multi_gpu_model
