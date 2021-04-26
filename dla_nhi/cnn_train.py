@@ -5,8 +5,10 @@ from astropy.table import Table
 import astropy.io.fits as fits
 from utils import voigt
 
+import tensorflow as tf
 from tensorflow.python.client import device_lib
 from keras.utils import plot_model, multi_gpu_model
+import keras.backend.tensorflow_backend as tfback
 #from tensorflow.keras.utils import multi_gpu_model
 from keras.callbacks import ModelCheckpoint, CSVLogger
 from keras.optimizers import Adam
@@ -19,6 +21,26 @@ from keras.layers import Dropout, Flatten
 from keras import regularizers
 from contextlib import redirect_stdout
 
+
+# An unfortunate fix required by injection...
+def _get_available_gpus():
+    """Get a list of available gpu devices (formatted as strings).
+
+    # Returns
+        A list of available GPU devices.
+    """
+    #global _LOCAL_DEVICES
+    if tfback._LOCAL_DEVICES is None:
+        devices = tf.config.list_logical_devices()
+        tfback._LOCAL_DEVICES = [x.name for x in devices]
+    return [x for x in tfback._LOCAL_DEVICES if 'device:gpu' in x.lower()]
+
+
+# This is the fix required
+tfback._get_available_gpus = _get_available_gpus
+
+
+# Now start the calculation...
 velstep = 2.5    # Pixel size in km/s
 spec_len = 4096  # Number of pixels to use
 zdla_min, zdla_max = 2.5, 3.4
