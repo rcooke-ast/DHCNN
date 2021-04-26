@@ -199,6 +199,7 @@ def generate_dataset(rest_window=30.0):
     np.save("../data/train_data/flue_{0:.2f}.npy".format(rest_window), allFlue)
     np.save("../data/train_data/stat_{0:.2f}.npy".format(rest_window), allStat)
     np.save("../data/train_data/zem_{0:.2f}.npy".format(rest_window), allzem)
+    print("Data generated successfully")
     return
 
 
@@ -429,8 +430,10 @@ def localise_features(mnum, repeats=3):
     # Summarize results
     summarize_results(allscores)
 
+
 # Run the code...
-if True:
+gendata = False
+if gendata :
     # Generate data
     generate_dataset(rest_window=restwin)
 else:
@@ -439,7 +442,7 @@ else:
     mnum = m_init
     while True:
         try:
-            localise_features(mnum, repeats=1, restart=False)
+            localise_features(mnum, repeats=1)
         except ValueError:
             continue
         mnum += 1
