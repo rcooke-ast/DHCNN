@@ -269,14 +269,14 @@ def yield_data(wave, flux, flue, stat, zem, batch_sz):
             else:
                 toobad += 1
         # We've found a good system, now extract the data
-        X_batch = np.zeros((batch_sz, spec_len))
+        X_batch = np.zeros((batch_sz, spec_len, 1))
         yld_NHI = np.random.uniform(NHI_min, NHI_max, batch_sz)
         for mm in range(batch_sz):
             model = voigt([yld_NHI[mm], dla, 15.0], wave[imin:imax, qso])
             # Determine the extra noise needed to maintain the same flue
             exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model**2))
             # Add this noise to the data
-            X_batch[mm, :] = flux[imin:imax, qso]*model + exnse
+            X_batch[mm, :, 0] = flux[imin:imax, qso]*model + exnse
         indict['input_1'] = X_batch.copy()
         # Store output
         outdict = {'output_NHI': yld_NHI}
