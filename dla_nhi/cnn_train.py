@@ -86,17 +86,17 @@ def hyperparam_orig(mnum):
                          conv_kernel_2 = [32],
                          conv_kernel_3 = [32],
                          # Stride of each kernal
-                         conv_stride_1 = [1],
-                         conv_stride_2 = [1],
-                         conv_stride_3 = [1],
+                         conv_stride_1 = [8],
+                         conv_stride_2 = [4],
+                         conv_stride_3 = [4],
                          # Pooling kernel size
                          pool_kernel_1 = [128],
                          pool_kernel_2 = [64],
                          pool_kernel_3 = [64],
                          # Pooling stride
-                         pool_stride_1 = [1],
-                         pool_stride_2 = [1],
-                         pool_stride_3 = [1],
+                         pool_stride_1 = [8],
+                         pool_stride_2 = [4],
+                         pool_stride_3 = [4],
                          # Fully connected layers
                          fc1_neurons   = [4096],
                          fc2_N_neurons = [256]
