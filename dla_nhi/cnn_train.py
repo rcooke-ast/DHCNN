@@ -79,8 +79,8 @@ def hyperparam_orig(mnum):
                          num_batch_validate = [32],
                          # Number of filters in each convolutional layer
                          conv_filter_1 = [128],
-                         conv_filter_2 = [128],
-                         conv_filter_3 = [128],
+                         conv_filter_2 = [64],
+                         conv_filter_3 = [64],
                          # Kernel size
                          conv_kernel_1 = [32],
                          conv_kernel_2 = [32],
@@ -90,9 +90,9 @@ def hyperparam_orig(mnum):
                          conv_stride_2 = [1],
                          conv_stride_3 = [1],
                          # Pooling kernel size
-                         pool_kernel_1 = [2],
-                         pool_kernel_2 = [2],
-                         pool_kernel_3 = [2],
+                         pool_kernel_1 = [128],
+                         pool_kernel_2 = [64],
+                         pool_kernel_3 = [64],
                          # Pooling stride
                          pool_stride_1 = [1],
                          pool_stride_2 = [1],
@@ -369,7 +369,7 @@ def evaluate_model(trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, 
     #     gpumodel = multi_gpu_model(model, gpus=ngpus)
 
     # Summarize layers
-    summary = False
+    summary = True
     if summary:
         with open(filepath + model_name + '.summary', 'w') as f:
             with redirect_stdout(f):
