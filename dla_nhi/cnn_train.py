@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 from astropy.table import Table
 import astropy.io.fits as fits
-from utils import voigt
+import utils
 
 import tensorflow as tf
 from tensorflow.python.client import device_lib
@@ -157,7 +157,7 @@ def hyperparam(mnum):
     return hyperpar
 
 
-def generate_dataset(rest_window=30.0):
+def generate_dataset_trueqsos(rest_window=30.0):
     """
     rest_window = Number of REST Angstroms to the left and right of the central DLA profile to use - this is assumed to be an int, for file naming purposes
     rest_proxqso = number of REST Angstroms to the left of the QSO to use for generating a DLA (only used if non-zero)
@@ -211,21 +211,82 @@ def generate_dataset(rest_window=30.0):
         allFlue[:sz, qq] = dat[1].data['ERR'][ww] * cont
         allStat[:sz, qq] = dat[1].data['STATUS'][ww]
     # Save the data
-    np.save("../data/train_data/wave_{0:.2f}.npy".format(rest_window), allWave)
-    np.save("../data/train_data/flux_{0:.2f}.npy".format(rest_window), allFlux)
-    np.save("../data/train_data/flue_{0:.2f}.npy".format(rest_window), allFlue)
-    np.save("../data/train_data/stat_{0:.2f}.npy".format(rest_window), allStat)
-    np.save("../data/train_data/zem_{0:.2f}.npy".format(rest_window), allzem)
+    np.save("../data/train_data/true_qsos/wave_{0:.2f}.npy".format(rest_window), allWave)
+    np.save("../data/train_data/true_qsos/flux_{0:.2f}.npy".format(rest_window), allFlux)
+    np.save("../data/train_data/true_qsos/flue_{0:.2f}.npy".format(rest_window), allFlue)
+    np.save("../data/train_data/true_qsos/stat_{0:.2f}.npy".format(rest_window), allStat)
+    np.save("../data/train_data/true_qsos/zem_{0:.2f}.npy".format(rest_window), allzem)
     print("Data generated successfully")
     return
 
 
-def load_dataset(rest_window=30.0, ftrain=0.9):
-    allWave = np.load("../data/train_data/wave_{0:.2f}.npy".format(rest_window))
-    allFlux = np.load("../data/train_data/flux_{0:.2f}.npy".format(rest_window))
-    allFlue = np.load("../data/train_data/flue_{0:.2f}.npy".format(rest_window))
-    allStat = np.load("../data/train_data/stat_{0:.2f}.npy".format(rest_window))
-    allzem = np.load("../data/train_data/zem_{0:.2f}.npy".format(rest_window))
+def generate_dataset(nsubpix=10):
+    """
+    This routine generates perfect data, nqso*nrep.
+
+    """
+    filename = '../data/DR1_quasars_master_trimmed.csv'
+    t_trim = Table.read(filename, format='ascii.csv')
+    # Select a random QSO
+    nqso = t_trim['Name_Adopt'].size
+    # Just get the size of the data first
+    maxsz = 0
+    for qq in range(nqso):
+        qso = t_trim[qq]
+        zem = qso['zem_Adopt']
+        # Load the data
+        dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
+        wvmax = (1+zem)*(1215.6701+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
+        wvmin = (1+zdla_min)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
+        wave = dat[1].data['WAVE']
+        ww = np.where((wave > wvmin) & (wave < wvmax))
+        sz = wave[ww].size
+        if sz > maxsz: maxsz = sz
+        stat = dat[1].data['STATUS'][ww]
+        bd = np.where(stat != 1)
+        if bd[0].size != 0:
+            print("Number of bad pixels in QSO {0:d} = {1:d}".format(qq, bd[0].size))
+        gd = np.where(stat == 1)
+        if gd[0].size < spec_len:
+            print("WARNING :: Not enough good pixels in QSO {0:d}".format(qq))
+    # Generate the data arrays and insert the data
+    allWave = np.zeros((maxsz, nqso))
+    allFlux = np.zeros((maxsz, nqso))
+    allFlue = np.zeros((maxsz, nqso))
+    allStat = np.zeros((maxsz, nqso))
+    allzem  = np.zeros(nqso)
+    for qq in range(nqso):
+        qso = t_trim[qq]
+        zem = qso['zem_Adopt']
+        allzem[qq] = zem
+        # Load the data
+        dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
+        wvmax = (1+zem)*(1215.6701+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
+        wvmin = (1+zdla_min)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
+        wave = dat[1].data['WAVE']
+        ww = np.where((wave > wvmin) & (wave < wvmax))
+        sz = wave[ww].size
+        cont = dat[1].data['CONTINUUM'][ww]
+        allWave[:sz, qq] = wave[ww].copy()
+        allFlux[:sz, qq] = dat[1].data['FLUX'][ww] * cont
+        allFlue[:sz, qq] = dat[1].data['ERR'][ww] * cont
+        allStat[:sz, qq] = dat[1].data['STATUS'][ww]
+    # Save the data
+    np.save("../data/train_data/true_qsos/wave_{0:.2f}.npy".format(rest_window), allWave)
+    np.save("../data/train_data/true_qsos/flux_{0:.2f}.npy".format(rest_window), allFlux)
+    np.save("../data/train_data/true_qsos/flue_{0:.2f}.npy".format(rest_window), allFlue)
+    np.save("../data/train_data/true_qsos/stat_{0:.2f}.npy".format(rest_window), allStat)
+    np.save("../data/train_data/true_qsos/zem_{0:.2f}.npy".format(rest_window), allzem)
+    print("Data generated successfully")
+    return
+
+
+def load_dataset_trueqsos(rest_window=30.0, ftrain=0.9):
+    allWave = np.load("../data/train_data/true_qsos/wave_{0:.2f}.npy".format(rest_window))
+    allFlux = np.load("../data/train_data/true_qsos/flux_{0:.2f}.npy".format(rest_window))
+    allFlue = np.load("../data/train_data/true_qsos/flue_{0:.2f}.npy".format(rest_window))
+    allStat = np.load("../data/train_data/true_qsos/stat_{0:.2f}.npy".format(rest_window))
+    allzem = np.load("../data/train_data/true_qsos/zem_{0:.2f}.npy".format(rest_window))
     ntrain = int(ftrain*allzem.shape[0])
     # Select the training data
     trainW = allWave[:, :ntrain]
@@ -242,7 +303,10 @@ def load_dataset(rest_window=30.0, ftrain=0.9):
     return trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ
 
 
-def yield_data(wave, flux, flue, stat, zem, batch_sz):
+def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
+    """
+    Based on imprinting a DLA on observations of _real_ QSOs
+    """
     cntr_batch = 0
     while True:
         indict = ({})
@@ -272,7 +336,7 @@ def yield_data(wave, flux, flue, stat, zem, batch_sz):
         X_batch = np.zeros((batch_sz, spec_len, 1))
         yld_NHI = np.random.uniform(NHI_min, NHI_max, batch_sz)
         for mm in range(batch_sz):
-            model = voigt([yld_NHI[mm], dla, 15.0], wave[imin:imax, qso])
+            model = utils.voigt([yld_NHI[mm], dla, 15.0], wave[imin:imax, qso])
             # Determine the extra noise needed to maintain the same flue
             exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model**2))
             # Add this noise to the data
@@ -285,6 +349,47 @@ def yield_data(wave, flux, flue, stat, zem, batch_sz):
         cntr_batch += 1
         if cntr_batch >= zem.shape[0]:
             cntr_batch = 0
+
+
+def yield_data(wave, flux, zem, vfwhm, batch_sz):
+    """
+    Based on generating perfect data
+    """
+    qso = 0
+    snr = 30
+    while True:
+        indict = ({})
+        zdmin = max(zdla_min, ((wave[0, qso]+restwin)/1215.6701) - 1.0)  # Can't have a DLA below the data for this QSO
+        zdmax = min(zdla_max, zem[qso])  # Can't have a DLA above the QSO redshift
+        dla = np.random.uniform(zdmin, zdmax)
+        final_wave = utils.rebin_subpix(wave[:, qso], nsubpix=10)
+        amin = np.argmin(np.abs(final_wave - 1215.6701 * (1 + dla)))
+        imin = amin - spec_len // 2
+        imax = amin - spec_len // 2 + spec_len
+        # We've found a good system, now extract the data
+        HI_batch = np.zeros((batch_sz, spec_len, 1))
+        # Generate the DI and HI absorption line system
+        yld_NHI = np.random.uniform(NHI_min, NHI_max, batch_sz)
+        for mm in range(batch_sz):
+            model = utils.voigt([yld_NHI[mm], dla, 15.0], wave[:, qso])
+            # Convolve the spectrum
+            fluxout = flux[:, qso] * model
+            mock_conv = utils.convolve(fluxout, wave[:, qso], vfwhm)
+            # Rebin the spectrum and store as XSpectrum1D
+            final_flux = utils.rebin_subpix(mock_conv, nsubpix=10)
+            # Add some noise
+            noise = np.random.normal(np.zeros(spec_len), final_flux[imin:imax]/snr)
+            # Add this noise to the data
+            HI_batch[mm, :, 0] = final_flux[imin:imax] + noise
+        indict['input_1'] = HI_batch.copy()
+        # Store output
+        outdict = {'output_NHI': yld_NHI}
+        yield (indict, outdict)
+
+        qso += 1
+        if qso >= zem.shape[0]:
+            qso = 0
+
 
 
 def build_model_simple(hyperpar):
