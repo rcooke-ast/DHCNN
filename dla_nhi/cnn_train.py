@@ -220,7 +220,7 @@ def generate_dataset_trueqsos(rest_window=30.0):
     return
 
 
-def generate_dataset(nsubpix=10):
+def generate_dataset(rest_window=30.0, nsubpix=10):
     """
     This routine generates perfect data, nqso*nrep.
 
@@ -251,6 +251,7 @@ def generate_dataset(nsubpix=10):
             print("WARNING :: Not enough good pixels in QSO {0:d}".format(qq))
     # Generate the data arrays and insert the data
     allWave = np.zeros((maxsz, nqso))
+    allCont = np.zeros((maxsz, nqso))
     allFlux = np.zeros((maxsz, nqso))
     allFlue = np.zeros((maxsz, nqso))
     allStat = np.zeros((maxsz, nqso))
@@ -269,10 +270,12 @@ def generate_dataset(nsubpix=10):
         cont = dat[1].data['CONTINUUM'][ww]
         allWave[:sz, qq] = wave[ww].copy()
         allFlux[:sz, qq] = dat[1].data['FLUX'][ww] * cont
+        allFlux[:sz, qq] = cont
         allFlue[:sz, qq] = dat[1].data['ERR'][ww] * cont
         allStat[:sz, qq] = dat[1].data['STATUS'][ww]
     # Save the data
     np.save("../data/train_data/true_qsos/wave_{0:.2f}.npy".format(rest_window), allWave)
+    np.save("../data/train_data/true_qsos/cont_{0:.2f}.npy".format(rest_window), allWave)
     np.save("../data/train_data/true_qsos/flux_{0:.2f}.npy".format(rest_window), allFlux)
     np.save("../data/train_data/true_qsos/flue_{0:.2f}.npy".format(rest_window), allFlue)
     np.save("../data/train_data/true_qsos/stat_{0:.2f}.npy".format(rest_window), allStat)
@@ -282,6 +285,33 @@ def generate_dataset(nsubpix=10):
 
 
 def load_dataset_trueqsos(rest_window=30.0, ftrain=0.9):
+    allWave = np.load("../data/train_data/true_qsos/wave_{0:.2f}.npy".format(rest_window))
+    allFlux = np.load("../data/train_data/true_qsos/flux_{0:.2f}.npy".format(rest_window))
+    allFlue = np.load("../data/train_data/true_qsos/flue_{0:.2f}.npy".format(rest_window))
+    allStat = np.load("../data/train_data/true_qsos/stat_{0:.2f}.npy".format(rest_window))
+    allzem = np.load("../data/train_data/true_qsos/zem_{0:.2f}.npy".format(rest_window))
+    ntrain = int(ftrain*allzem.shape[0])
+    # Select the training data
+    trainW = allWave[:, :ntrain]
+    trainF = allFlux[:, :ntrain]
+    trainE = allFlue[:, :ntrain]
+    trainS = allStat[:, :ntrain]
+    trainZ = allzem[:ntrain]
+    # Select the test data
+    testW = allWave[:, ntrain:]
+    testF = allFlux[:, ntrain:]
+    testE = allFlue[:, ntrain:]
+    testS = allStat[:, ntrain:]
+    testZ = allzem[:ntrain]
+    return trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ
+
+
+def load_dataset(rest_window=30.0, ftrain=0.9):
+    """
+    Load some simulated (perfect) data, and superimpose a DLA on the spectrum
+
+    Might need
+    """
     allWave = np.load("../data/train_data/true_qsos/wave_{0:.2f}.npy".format(rest_window))
     allFlux = np.load("../data/train_data/true_qsos/flux_{0:.2f}.npy".format(rest_window))
     allFlue = np.load("../data/train_data/true_qsos/flue_{0:.2f}.npy".format(rest_window))
@@ -547,7 +577,7 @@ def localise_features(mnum, repeats=3):
 
 
 # Run the code...
-gendata = False
+gendata = True
 if gendata :
     # Generate data
     generate_dataset(rest_window=restwin)
