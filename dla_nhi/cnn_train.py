@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 from astropy.table import Table
 import astropy.io.fits as fits
+from scipy import interpolate
 import utils
 
 import tensorflow as tf
@@ -397,11 +398,12 @@ def yield_data(wave, cont, fakewave, fakeflux, zem, batch_sz):
         yld_NHI = np.random.uniform(NHI_min, NHI_max, batch_sz)
         # Now select a few random spectra
         yld_ff = np.random.randint(0, fakeflux.shape[0], batch_sz)
+        # convert the fake wavelength from z=3 to z=zem
+        fwav = fakewave*(1+dla)/(1+3.0)
         for mm in range(batch_sz):
             # Get a spectrum of the contaminating absorption
-            # convert this wavelength from z=3 to z=zem
-            fakewave, fakeflux[yld_ff[mm], :]
-            abssys = 1.0  # TODO :: insert something reasonable here
+            fspl = interpolate.interp1d(fwav, fakeflux[yld_ff[mm], :], kind='linear')
+            abssys = fspl(wave[:, qso])
             # Generate a model of a high NHI system
             model = utils.voigt([yld_NHI[mm], dla, 15.0], wave[:, qso])
             # Combine the model of the continuum, absorption and high NHI system
