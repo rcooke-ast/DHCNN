@@ -402,8 +402,9 @@ def yield_data(wave, cont, fakewave, fakeflux, zem, batch_sz):
         fwav = fakewave*(1+dla)/(1+3.0)
         for mm in range(batch_sz):
             # Get a spectrum of the contaminating absorption
-            fspl = interpolate.interp1d(fwav, fakeflux[yld_ff[mm], :], kind='linear')
-            abssys = fspl(wave[:, qso])
+            #fspl = interpolate.interp1d(fwav, fakeflux[yld_ff[mm], :], kind='linear')
+            #abssys = fspl(wave[:, qso])
+            abssys = np.interp(wave[:, qso], fwav, fakeflux[yld_ff[mm], :])
             # Generate a model of a high NHI system
             model = utils.voigt([yld_NHI[mm], dla, 15.0], wave[:, qso])
             # Combine the model of the continuum, absorption and high NHI system
