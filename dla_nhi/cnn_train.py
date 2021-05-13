@@ -46,6 +46,7 @@ spec_len = 4096  # Number of pixels to use
 zdla_min, zdla_max = 2.5, 3.4
 NHI_min, NHI_max = 19.2, 21.0
 restwin = 0.5*spec_len*velstep*1215.6701/299792.458  # Rest window in angstroms (the full window size is twice this)
+vfwhm = 7.0  # velocity FWHM in km/s
 
 
 def get_available_gpus():
@@ -306,31 +307,25 @@ def load_dataset_trueqsos(rest_window=30.0, ftrain=0.9):
     return trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ
 
 
-def load_dataset(rest_window=30.0, ftrain=0.9):
+def load_dataset(rest_window=30.0):
     """
-    Load some simulated (perfect) data, and superimpose a DLA on the spectrum
-
-    Might need
+    Load some simulated (perfect) data, and superimpose a DLA on the spectrum when yielding data
     """
+    # Load the real QSO data
     allWave = np.load("../data/train_data/true_qsos/wave_{0:.2f}.npy".format(rest_window))
-    allFlux = np.load("../data/train_data/true_qsos/flux_{0:.2f}.npy".format(rest_window))
-    allFlue = np.load("../data/train_data/true_qsos/flue_{0:.2f}.npy".format(rest_window))
-    allStat = np.load("../data/train_data/true_qsos/stat_{0:.2f}.npy".format(rest_window))
+    allCont = np.load("../data/train_data/true_qsos/cont_{0:.2f}.npy".format(rest_window))
     allzem = np.load("../data/train_data/true_qsos/zem_{0:.2f}.npy".format(rest_window))
-    ntrain = int(ftrain*allzem.shape[0])
+    # Load the mock (perfect) data
+    fluxdir = "/cosma7/data/durham/rcooke/Cosmo/SandageTest/Logger/FastFit/label_data/"
+    fakewave = fluxdir + "cnn_qsospec_fluxspec_zem3.00_snr0_nspec25000_i0_wave.npy"
+    fakeflux = fluxdir + "cnn_qsospec_fluxspec_zem3.00_snr0_nspec25000_i0_normalised_fluxonly.npy"
+    trainFW = np.load(fakewave)
+    trainFF = np.load(fakeflux)
     # Select the training data
-    trainW = allWave[:, :ntrain]
-    trainF = allFlux[:, :ntrain]
-    trainE = allFlue[:, :ntrain]
-    trainS = allStat[:, :ntrain]
-    trainZ = allzem[:ntrain]
-    # Select the test data
-    testW = allWave[:, ntrain:]
-    testF = allFlux[:, ntrain:]
-    testE = allFlue[:, ntrain:]
-    testS = allStat[:, ntrain:]
-    testZ = allzem[:ntrain]
-    return trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ
+    trainW = allWave.copy()
+    trainC = allCont.copy()
+    trainZ = allzem.copy()
+    return trainW, trainC, trainFW, trainFF, trainZ
 
 
 def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
@@ -381,7 +376,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
             cntr_batch = 0
 
 
-def yield_data(wave, flux, zem, vfwhm, batch_sz):
+def yield_data(wave, cont, fakewave, fakeflux, zem, batch_sz):
     """
     Based on generating perfect data
     """
@@ -400,10 +395,18 @@ def yield_data(wave, flux, zem, vfwhm, batch_sz):
         HI_batch = np.zeros((batch_sz, spec_len, 1))
         # Generate the DI and HI absorption line system
         yld_NHI = np.random.uniform(NHI_min, NHI_max, batch_sz)
+        # Now select a few random spectra
+        yld_ff = np.random.randint(0, fakeflux.shape[0], batch_sz)
         for mm in range(batch_sz):
+            # Get a spectrum of the contaminating absorption
+            # convert this wavelength from z=3 to z=zem
+            fakewave, fakeflux[yld_ff[mm], :]
+            abssys = 1.0  # TODO :: insert something reasonable here
+            # Generate a model of a high NHI system
             model = utils.voigt([yld_NHI[mm], dla, 15.0], wave[:, qso])
+            # Combine the model of the continuum, absorption and high NHI system
+            fluxout = cont[:, qso] * model * abssys
             # Convolve the spectrum
-            fluxout = flux[:, qso] * model
             mock_conv = utils.convolve(fluxout, wave[:, qso], vfwhm)
             # Rebin the spectrum and store as XSpectrum1D
             final_flux = utils.rebin_subpix(mock_conv, nsubpix=10)
@@ -466,7 +469,7 @@ def build_model_simple(hyperpar):
 
 
 # fit and evaluate a model
-def evaluate_model(trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ,
+def evaluate_model(trainW, trainC, trainFW, trainFF, trainZ,
                    hyperpar, mnum, epochs=10, verbose=1):
     #yield_data(trainX, trainN, trainb)
     #assert(False)
@@ -526,19 +529,19 @@ def evaluate_model(trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, 
     csv_logger = CSVLogger(csv_name, append=True)
     # Fit network
     gpumodel.fit_generator(
-        yield_data(trainW, trainF, trainE, trainS, trainZ, hyperpar['batch_size']),
+        yield_data(trainW, trainC, trainFW, trainFF, trainZ, hyperpar['batch_size']),
         steps_per_epoch=hyperpar['num_batch_train'],  # Total number of batches (i.e. num data/batch size)
         epochs=epochs, verbose=verbose,
         callbacks=[checkpointer, csv_logger],
-        validation_data=yield_data(testW, testF, testE, testS, testZ, hyperpar['batch_size']),
+        validation_data=yield_data(trainW, trainC, trainFW, trainFF, trainZ, hyperpar['batch_size']),
         validation_steps=hyperpar['num_batch_validate'])
 
     gpumodel.save(sav_name)
 
     # Evaluate model
 #    _, accuracy
-    accuracy = gpumodel.evaluate_generator(yield_data(testW, testF, testE, testS, testZ, hyperpar['batch_size']),
-                                           steps=testZ.shape[0],
+    accuracy = gpumodel.evaluate_generator(yield_data(trainW, trainC, trainFW, trainFF, trainZ, hyperpar['batch_size']),
+                                           steps=trainZ.shape[0],
                                            verbose=0)
     return accuracy, gpumodel.metrics_names
 
@@ -557,11 +560,11 @@ def localise_features(mnum, repeats=3):
     hyperpar = hyperparam_orig(0)
     #hyperpar = hyperparam(mnum)
     # load data
-    trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ = load_dataset_trueqsos(rest_window=restwin)
+    trainW, trainC, trainFW, trainFF, trainZ = load_dataset(rest_window=restwin)
     # repeat experiment
     allscores = dict({})
     for r in range(repeats):
-        scores, names = evaluate_model(trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ,
+        scores, names = evaluate_model(trainW, trainC, trainFW, trainFF, trainZ,
                                        hyperpar, mnum, epochs=hyperpar['num_epochs'], verbose=1)
         if r == 0:
             for name in names:
@@ -577,7 +580,7 @@ def localise_features(mnum, repeats=3):
 
 
 # Run the code...
-gendata = True
+gendata = False
 if gendata :
     # Generate data
     generate_dataset(rest_window=restwin)
