@@ -391,7 +391,6 @@ def yield_data(wave, flux, zem, vfwhm, batch_sz):
             qso = 0
 
 
-
 def build_model_simple(hyperpar):
     # Extract parameters
     fc1_neurons = hyperpar['fc1_neurons']
@@ -528,7 +527,7 @@ def localise_features(mnum, repeats=3):
     hyperpar = hyperparam_orig(0)
     #hyperpar = hyperparam(mnum)
     # load data
-    trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ = load_dataset(rest_window=restwin)
+    trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ = load_dataset_trueqsos(rest_window=restwin)
     # repeat experiment
     allscores = dict({})
     for r in range(repeats):
