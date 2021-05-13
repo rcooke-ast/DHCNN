@@ -270,12 +270,12 @@ def generate_dataset(rest_window=30.0, nsubpix=10):
         cont = dat[1].data['CONTINUUM'][ww]
         allWave[:sz, qq] = wave[ww].copy()
         allFlux[:sz, qq] = dat[1].data['FLUX'][ww] * cont
-        allFlux[:sz, qq] = cont
+        allCont[:sz, qq] = cont
         allFlue[:sz, qq] = dat[1].data['ERR'][ww] * cont
         allStat[:sz, qq] = dat[1].data['STATUS'][ww]
     # Save the data
     np.save("../data/train_data/true_qsos/wave_{0:.2f}.npy".format(rest_window), allWave)
-    np.save("../data/train_data/true_qsos/cont_{0:.2f}.npy".format(rest_window), allWave)
+    np.save("../data/train_data/true_qsos/cont_{0:.2f}.npy".format(rest_window), allCont)
     np.save("../data/train_data/true_qsos/flux_{0:.2f}.npy".format(rest_window), allFlux)
     np.save("../data/train_data/true_qsos/flue_{0:.2f}.npy".format(rest_window), allFlue)
     np.save("../data/train_data/true_qsos/stat_{0:.2f}.npy".format(rest_window), allStat)
