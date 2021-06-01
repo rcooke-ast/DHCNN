@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 from astropy.table import Table
 import astropy.io.fits as fits
+from IPython import embed
 from scipy import interpolate
 import utils
 
@@ -326,6 +327,7 @@ def load_dataset(rest_window=30.0):
     trainW = allWave.copy()
     trainC = allCont.copy()
     trainZ = allzem.copy()
+    embed()
     return trainW, trainC, trainFW, trainFF, trainZ
 
 
@@ -383,6 +385,7 @@ def yield_data(wave, cont, fakewave, fakeflux, zem, batch_sz):
     """
     qso = 0
     snr = 30
+    embed()
     while True:
         indict = ({})
         zdmin = max(zdla_min, ((wave[0, qso]+restwin)/1215.6701) - 1.0)  # Can't have a DLA below the data for this QSO
@@ -421,9 +424,8 @@ def yield_data(wave, cont, fakewave, fakeflux, zem, batch_sz):
         indict['input_1'] = HI_batch.copy()
         # Store output
         outdict = {'output_NHI': yld_NHI}
-        wave_rebin = utils.rebin_subpix(wave[:, qso], nsubpix=10)
-        plt.plot(wave_rebin, HI_batch[0, :, 0], 'k-')
-        plt.plot(wave_rebin, cont_rebin)
+        plt.plot(final_wave, HI_batch[0, :, 0], 'k-')
+        plt.plot(final_wave, cont_rebin)
         plt.show()
         assert(False)
         #yield (indict, outdict)
