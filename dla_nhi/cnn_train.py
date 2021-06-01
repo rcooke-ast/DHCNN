@@ -413,14 +413,20 @@ def yield_data(wave, cont, fakewave, fakeflux, zem, batch_sz):
             mock_conv = utils.convolve(fluxout, wave[:, qso], vfwhm)
             # Rebin the spectrum and store as XSpectrum1D
             final_flux = utils.rebin_subpix(mock_conv, nsubpix=10)
+            cont_rebin = utils.rebin_subpix(cont[:, qso], nsubpix=10)
             # Add some noise
-            noise = np.random.normal(np.zeros(spec_len), final_flux[imin:imax]/snr)
+            noise = np.random.normal(np.zeros(cont_rebin.size), cont_rebin/snr)
             # Add this noise to the data
             HI_batch[mm, :, 0] = final_flux[imin:imax] + noise
         indict['input_1'] = HI_batch.copy()
         # Store output
         outdict = {'output_NHI': yld_NHI}
-        yield (indict, outdict)
+        wave_rebin = utils.rebin_subpix(wave[:, qso], nsubpix=10)
+        plt.plot(wave_rebin, HI_batch[0, :, 0], 'k-')
+        plt.plot(wave_rebin, cont_rebin)
+        plt.show()
+        assert(False)
+        #yield (indict, outdict)
 
         qso += 1
         if qso >= zem.shape[0]:
@@ -474,7 +480,7 @@ def build_model_simple(hyperpar):
 # fit and evaluate a model
 def evaluate_model(trainW, trainC, trainFW, trainFF, trainZ,
                    hyperpar, mnum, epochs=10, verbose=1):
-    #yield_data(trainX, trainN, trainb)
+    yield_data(trainW, trainC, trainFW, trainFF, trainZ, hyperpar['batch_size'])
     #assert(False)
     filepath = os.path.dirname(os.path.abspath(__file__))
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
