@@ -387,7 +387,7 @@ def yield_data(fakewave, fakeflux, zem, batch_sz):
     while True:
         indict = ({})
         zdmin = zdla_min  # Can't have a DLA below the data for this QSO
-        zdmax = min(zdla_max, zem[qso])  # Can't have a DLA above the QSO redshift
+        zdmax = min(zdla_max, zem[qso]-0.15)  # Can't have a DLA above the QSO redshift
         dla = np.random.uniform(zdmin, zdmax)
         # We've found a good system, now extract the data
         HI_batch = np.zeros((batch_sz, spec_len, 1))
