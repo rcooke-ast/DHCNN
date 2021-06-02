@@ -391,7 +391,8 @@ def yield_data(wave, cont, fakewave, fakeflux, zem, batch_sz):
         zdmin = max(zdla_min, ((wave[0, qso]+restwin)/1215.6701) - 1.0)  # Can't have a DLA below the data for this QSO
         zdmax = min(zdla_max, zem[qso])  # Can't have a DLA above the QSO redshift
         dla = np.random.uniform(zdmin, zdmax)
-        final_wave = utils.rebin_subpix(wave[:, qso], nsubpix=10)
+        wgd = (wave[:, qso] != 0.0)
+        final_wave = wave[wgd, qso]
         amin = np.argmin(np.abs(final_wave - 1215.6701 * (1 + dla)))
         imin = amin - spec_len // 2
         imax = amin - spec_len // 2 + spec_len
@@ -407,28 +408,24 @@ def yield_data(wave, cont, fakewave, fakeflux, zem, batch_sz):
             # Get a spectrum of the contaminating absorption
             #fspl = interpolate.interp1d(fwav, fakeflux[yld_ff[mm], :], kind='linear')
             #abssys = fspl(wave[:, qso])
-            abssys = np.interp(wave[:, qso], fwav, fakeflux[yld_ff[mm], :])
+            abssys = np.interp(final_wave, fwav, fakeflux[yld_ff[mm], :])
             # Generate a model of a high NHI system
-            model = utils.voigt([yld_NHI[mm], dla, 15.0], wave[:, qso])
+            model = utils.voigt([yld_NHI[mm], dla, 15.0], wave[wgd, qso])
             # Combine the model of the continuum, absorption and high NHI system
-            fluxout = cont[:, qso] * model * abssys
+            fluxout = cont[wgd, qso] * model * abssys
             # Convolve the spectrum
-            mock_conv = utils.convolve(fluxout, wave[:, qso], vfwhm)
+            mock_conv = utils.convolve(fluxout, wave[wgd, qso], vfwhm)
             # Rebin the spectrum and store as XSpectrum1D
-            final_flux = utils.rebin_subpix(mock_conv, nsubpix=10)
-            cont_rebin = utils.rebin_subpix(cont[:, qso], nsubpix=10)
+            final_flux = mock_conv# utils.rebin_subpix(mock_conv, nsubpix=10)
+            final_cont = cont[wgd, qso]#utils.rebin_subpix(cont[wgd, qso], nsubpix=10)
             # Add some noise
-            noise = np.random.normal(np.zeros(cont_rebin.size), cont_rebin/snr)
+            noise = np.random.normal(np.zeros(final_cont.size), final_cont/snr)
             # Add this noise to the data
-            HI_batch[mm, :, 0] = final_flux[imin:imax] + noise
+            HI_batch[mm, :, 0] = final_flux[imin:imax] + noise[imin:imax]
         indict['input_1'] = HI_batch.copy()
         # Store output
         outdict = {'output_NHI': yld_NHI}
-        plt.plot(final_wave, HI_batch[0, :, 0], 'k-')
-        plt.plot(final_wave, cont_rebin)
-        plt.show()
-        assert(False)
-        #yield (indict, outdict)
+        yield (indict, outdict)
 
         qso += 1
         if qso >= zem.shape[0]:
@@ -482,7 +479,7 @@ def build_model_simple(hyperpar):
 # fit and evaluate a model
 def evaluate_model(trainW, trainC, trainFW, trainFF, trainZ,
                    hyperpar, mnum, epochs=10, verbose=1):
-    yield_data(trainW, trainC, trainFW, trainFF, trainZ, hyperpar['batch_size'])
+    #yield_data(trainW, trainC, trainFW, trainFF, trainZ, hyperpar['batch_size'])
     #assert(False)
     filepath = os.path.dirname(os.path.abspath(__file__))
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
