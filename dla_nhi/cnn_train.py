@@ -45,7 +45,7 @@ tfback._get_available_gpus = _get_available_gpus
 # Now start the calculation...
 velstep = 2.5    # Pixel size in km/s
 spec_len = 4096  # Number of pixels to use
-zdla_min, zdla_max = 2.5, 3.0#3.4
+zdla_min, zdla_max = 2.5, 2.93#3.4
 NHI_min, NHI_max = 19.2, 21.0
 restwin = 0.5*spec_len*velstep*1215.6701/299792.458  # Rest window in angstroms (the full window size is twice this)
 vfwhm = 7.0  # velocity FWHM in km/s
