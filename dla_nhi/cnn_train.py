@@ -400,17 +400,18 @@ def yield_data(fakewave, fakeflux, zem, batch_sz):
         amin = np.argmin(np.abs(final_wave - 1215.6701 * (1 + dla)))
         imin = amin - spec_len // 2
         imax = amin - spec_len // 2 + spec_len
+        final_cont = 1.0
         for mm in range(batch_sz):
             # Generate a model of a high NHI system
             model = utils.voigt([yld_NHI[mm], dla, 15.0], final_wave)
-            # Combine the model of the absorption and high NHI system
-            fluxout = fakeflux[yld_ff[mm], :] * model
+            # Combine the model of the continuum, absorption and high NHI system
+            fluxout = final_cont * fakeflux[yld_ff[mm], :] * model
             # Convolve the spectrum
             mock_conv = utils.convolve(fluxout, final_wave, vfwhm)
             # Rebin the spectrum and store as XSpectrum1D
             final_flux = mock_conv# utils.rebin_subpix(mock_conv, nsubpix=10)
             # Add some noise
-            noise = np.random.normal(np.zeros(final_flux.size), final_flux/snr)
+            noise = np.random.normal(np.zeros(final_flux.size), final_cont/snr)
             # Add this noise to the data
             HI_batch[mm, :, 0] = final_flux[imin:imax] + noise[imin:imax]
         indict['input_1'] = HI_batch.copy()
