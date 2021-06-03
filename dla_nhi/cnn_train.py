@@ -327,6 +327,7 @@ def load_dataset(rest_window=30.0):
     trainW = allWave.copy()
     trainC = allCont.copy()
     trainZ = allzem.copy()
+    embed()
     return trainW, trainC, trainFW, trainFF, trainZ
 
 
