@@ -322,12 +322,14 @@ def load_dataset(rest_window=30.0):
     fakewave = fluxdir + "cnn_qsospec_fluxspec_zem3.00_snr0_nspec25000_i0_wave.npy"
     fakeflux = fluxdir + "cnn_qsospec_fluxspec_zem3.00_snr0_nspec25000_i0_normalised_fluxonly.npy"
     trainFW = np.load(fakewave)
-    trainFF = np.load(fakeflux)
+    trainFF = np.load(fakeflux)[:5000,:]
+    waveext = trainFW[-1]*(1+velstep/299792.458)**np.arange(1,1+spec_len//2)
+    trainFW = np.append(trainFW, waveext)
+    trainFF = np.append(trainFF, np.ones((trainFF.shape[0], spec_len // 2)), axis=1)
     # Select the training data
     trainW = allWave.copy()
     trainC = allCont.copy()
     trainZ = allzem.copy()
-    embed()
     return trainW, trainC, trainFW, trainFF, trainZ
 
 
