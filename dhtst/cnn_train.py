@@ -8,6 +8,8 @@ from scipy.ndimage import uniform_filter1d
 from scipy import interpolate
 import utils
 
+print("Need to activate the environment: conda activate py37")
+
 import tensorflow as tf
 from tensorflow.python.client import device_lib
 from keras.utils import plot_model, multi_gpu_model
@@ -302,11 +304,11 @@ def generate_dataset(rest_window=30.0, nsubpix=10):
 
 
 def load_dataset_trueqsos(rest_window=30.0, ftrain=0.9):
-    allWave = np.load("../data/train_data/true_qsos/wave_{0:.2f}.npy".format(rest_window))
-    allFlux = np.load("../data/train_data/true_qsos/flux_{0:.2f}.npy".format(rest_window))
-    allFlue = np.load("../data/train_data/true_qsos/flue_{0:.2f}.npy".format(rest_window))
-    allStat = np.load("../data/train_data/true_qsos/stat_{0:.2f}.npy".format(rest_window))
-    allzem = np.load("../data/train_data/true_qsos/zem_{0:.2f}.npy".format(rest_window))
+    allWave = np.load("../data/train_data/true_qsos_DH/wave_{0:.2f}.npy".format(rest_window))
+    allFlux = np.load("../data/train_data/true_qsos_DH/flux_{0:.2f}.npy".format(rest_window))
+    allFlue = np.load("../data/train_data/true_qsos_DH/flue_{0:.2f}.npy".format(rest_window))
+    allStat = np.load("../data/train_data/true_qsos_DH/stat_{0:.2f}.npy".format(rest_window))
+    allzem = np.load("../data/train_data/true_qsos_DH/zem_{0:.2f}.npy".format(rest_window))
     ntrain = int(ftrain*allzem.shape[0])
     # Select the training data
     trainW = allWave[:, :ntrain]
@@ -434,58 +436,6 @@ def yield_data(fakewave, fakeflux, zem, batch_sz):
             final_flux = mock_conv# utils.rebin_subpix(mock_conv, nsubpix=10)
             # Add some noise
             noise = np.random.normal(np.zeros(final_flux.size), final_cont/snr)
-            # Add this noise to the data
-            HI_batch[mm, :, 0] = final_flux[imin:imax] + noise[imin:imax]
-        indict['input_1'] = HI_batch.copy()
-        # Store output
-        outdict = {'output_NHI': yld_NHI}
-        yield (indict, outdict)
-
-        qso += 1
-        if qso >= zem.shape[0]:
-            qso = 0
-
-
-def yield_data_OLDNOTWORKING(wave, cont, fakewave, fakeflux, zem, batch_sz):
-    """
-    Based on generating perfect data
-    """
-    qso = 0
-    snr = 30
-    while True:
-        indict = ({})
-        zdmin = max(zdla_min, ((wave[0, qso]+restwin)/1215.6701) - 1.0)  # Can't have a DLA below the data for this QSO
-        zdmax = min(zdla_max, zem[qso])  # Can't have a DLA above the QSO redshift
-        dla = np.random.uniform(zdmin, zdmax)
-        wgd = (wave[:, qso] != 0.0)
-        final_wave = wave[wgd, qso]
-        amin = np.argmin(np.abs(final_wave - 1215.6701 * (1 + dla)))
-        imin = amin - spec_len // 2
-        imax = amin - spec_len // 2 + spec_len
-        # We've found a good system, now extract the data
-        HI_batch = np.zeros((batch_sz, spec_len, 1))
-        # Generate the DI and HI absorption line system
-        yld_NHI = np.random.uniform(NHI_min, NHI_max, batch_sz)
-        # Now select a few random spectra
-        yld_ff = np.random.randint(0, fakeflux.shape[0], batch_sz)
-        # convert the fake wavelength from z=3 to z=zem
-        fwav = fakewave*(1+zem[qso])/(1+3.0)
-        for mm in range(batch_sz):
-            # Get a spectrum of the contaminating absorption
-            #fspl = interpolate.interp1d(fwav, fakeflux[yld_ff[mm], :], kind='linear')
-            #abssys = fspl(wave[:, qso])
-            abssys = np.interp(final_wave, fwav, fakeflux[yld_ff[mm], :])
-            # Generate a model of a high NHI system
-            model = utils.voigt([yld_NHI[mm], dla, 15.0], wave[wgd, qso])
-            # Combine the model of the continuum, absorption and high NHI system
-            fluxout = cont[wgd, qso] * model * abssys
-            # Convolve the spectrum
-            mock_conv = utils.convolve(fluxout, wave[wgd, qso], vfwhm)
-            # Rebin the spectrum and store as XSpectrum1D
-            final_flux = mock_conv# utils.rebin_subpix(mock_conv, nsubpix=10)
-            final_cont = cont[wgd, qso]#utils.rebin_subpix(cont[wgd, qso], nsubpix=10)
-            # Add some noise
-            noise = np.random.normal(np.zeros(final_cont.size), final_cont/snr)
             # Add this noise to the data
             HI_batch[mm, :, 0] = final_flux[imin:imax] + noise[imin:imax]
         indict['input_1'] = HI_batch.copy()
