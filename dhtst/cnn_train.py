@@ -40,7 +40,7 @@ def _get_available_gpus():
 
 
 # This is the fix required
-#tfback._get_available_gpus = _get_available_gpus
+tfback._get_available_gpus = _get_available_gpus
 
 
 # Now start the calculation...
