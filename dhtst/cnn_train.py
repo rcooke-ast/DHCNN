@@ -654,8 +654,8 @@ def localise_features(mnum, repeats=3):
 
 
 # Run the code...
-gendata = False
-if gendata :
+gendata = True
+if gendata:
     # Generate data
     generate_dataset_trueqsos(rest_window=restwin)
 else:
