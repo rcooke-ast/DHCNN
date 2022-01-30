@@ -224,7 +224,7 @@ def generate_dataset_trueqsos(rest_window=30.0):
         # Find the regions that are consistent with the continuum
         nsigma = 2
         window = 5
-        wc = np.where(np.abs((this_flx-cont)/this_fle) < nsigma)[0].astype(np.float)
+        wc = (np.abs((this_flx-cont)/this_fle) < nsigma).astype(np.float)
         msk = (uniform_filter1d(wc, size=window) == 1).astype(np.float)
         allStat[:sz, qq] *= msk
     # Save the data
