@@ -8,21 +8,21 @@ from scipy.ndimage import uniform_filter1d
 from scipy import interpolate
 import utils
 
-import tensorflow as tf
-from tensorflow.python.client import device_lib
-from keras.utils import plot_model, multi_gpu_model
-import keras.backend.tensorflow_backend as tfback
-#from tensorflow.keras.utils import multi_gpu_model
-from keras.callbacks import ModelCheckpoint, CSVLogger
-from keras.optimizers import Adam
-from keras.models import Model, load_model
-from keras.layers import Input
-from keras.layers import Dense
-from keras.layers.convolutional import Conv1D
-from keras.layers.convolutional import MaxPooling1D
-from keras.layers import Dropout, Flatten
-from keras import regularizers
-from contextlib import redirect_stdout
+# import tensorflow as tf
+# from tensorflow.python.client import device_lib
+# from keras.utils import plot_model, multi_gpu_model
+# import keras.backend.tensorflow_backend as tfback
+# #from tensorflow.keras.utils import multi_gpu_model
+# from keras.callbacks import ModelCheckpoint, CSVLogger
+# from keras.optimizers import Adam
+# from keras.models import Model, load_model
+# from keras.layers import Input
+# from keras.layers import Dense
+# from keras.layers.convolutional import Conv1D
+# from keras.layers.convolutional import MaxPooling1D
+# from keras.layers import Dropout, Flatten
+# from keras import regularizers
+# from contextlib import redirect_stdout
 
 
 # An unfortunate fix required by injection...
@@ -40,7 +40,7 @@ def _get_available_gpus():
 
 
 # This is the fix required
-tfback._get_available_gpus = _get_available_gpus
+#tfback._get_available_gpus = _get_available_gpus
 
 
 # Now start the calculation...
