@@ -208,10 +208,10 @@ def generate_dataset_trueqsos(rest_window=30.0):
     allFlue = np.zeros((maxsz, nqso))
     allStat = np.zeros((maxsz, nqso))
     allzem  = np.zeros(nqso)
+    goodID = 0
     for qq in range(nqso):
         qso = t_trim[qq]
         zem = qso['zem_Adopt']
-        allzem[qq] = zem
         # Load the data
         dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
         wvmax = (1+zem)*(LyaH+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
@@ -222,16 +222,26 @@ def generate_dataset_trueqsos(rest_window=30.0):
         cont = dat[1].data['CONTINUUM'][ww]
         this_flx = dat[1].data['FLUX'][ww]
         this_fle = dat[1].data['ERR'][ww]
-        allWave[:sz, qq] = wave[ww].copy()
-        allFlux[:sz, qq] = this_flx
-        allFlue[:sz, qq] = this_fle
-        allStat[:sz, qq] = (dat[1].data['STATUS'][ww]==1).astype(np.float)
-        # Find the regions that are consistent with the continuum
-        nsigma = 2
-        window = 5
-        wc = (np.abs((this_flx-cont)/this_fle) < nsigma).astype(np.float)
-        msk = (uniform_filter1d(wc, size=window) == 1).astype(np.float)
-        allStat[:sz, qq] *= (msk+1)  # So, 0=bad, 1=good, 2=clean
+        embed()
+        if False:
+            allWave[:sz, goodID] = wave[ww].copy()
+            allFlux[:sz, goodID] = this_flx
+            allFlue[:sz, goodID] = this_fle
+            allStat[:sz, goodID] = (dat[1].data['STATUS'][ww]==1).astype(np.float)
+            allzem[goodID] = zem
+            # Find the regions that are consistent with the continuum
+            nsigma = 2
+            window = 5
+            wc = (np.abs((this_flx-cont)/this_fle) < nsigma).astype(np.float)
+            msk = (uniform_filter1d(wc, size=window) == 1).astype(np.float)
+            allStat[:sz, goodID] *= (msk+1)  # So, 0=bad, 1=good, 2=clean
+            goodID += 1
+    # Only keep the good QSOs
+    allWave = allWave[:, :goodID]
+    allFlux = allFlux[:, :goodID]
+    allFlue = allFlue[:, :goodID]
+    allStat = allStat[:, :goodID]
+    allzem = allzem[:goodID]
     # Save the data
     np.save("../data/train_data/true_qsos_DH/wave_{0:.2f}.npy".format(rest_window), allWave)
     np.save("../data/train_data/true_qsos_DH/flux_{0:.2f}.npy".format(rest_window), allFlux)
