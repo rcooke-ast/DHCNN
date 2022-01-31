@@ -409,29 +409,35 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
         gpumodel = build_model_simple(hyperpar)
 
     # Summarize layers
-    summary = False
+    print("Saving summary")
+    summary = True
     if summary:
         with open(filepath + model_name + '.summary', 'w') as f:
             with redirect_stdout(f):
                 gpumodel.summary()
+    print("Summary complete")
     # Plot graph
     plotit = False
     if plotit:
         pngname = filepath + model_name + '.png'
         plot_model(gpumodel, to_file=pngname)
     # Compile
+    print("Compiling")
     loss = {'output_ID': 'binary_crossentropy',
             'output_sh': mse_mask()}
     decay = hyperpar['lr_decay']*hyperpar['learning_rate']/hyperpar['num_epochs']
     optadam = Adam(lr=hyperpar['learning_rate'], decay=decay)
     gpumodel.compile(loss=loss, optimizer=optadam, metrics=['mean_squared_error'])
+    print("Compiled")
     # Initialise callbacks
     ckp_name = filepath + model_name + '.hdf5'
     sav_name = filepath + model_name + '_save.hdf5'
     csv_name = filepath + model_name + '.log'
+    print("Preparing checkpoints")
     checkpointer = ModelCheckpoint(filepath=ckp_name, verbose=1, save_best_only=True)
     csv_logger = CSVLogger(csv_name, append=True)
     # Fit network
+    print("Begin Fit network")
     gpumodel.fit_generator(
         yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size']),
         steps_per_epoch=hyperpar['num_batch_train'],  # Total number of batches (i.e. num data/batch size)
@@ -439,11 +445,12 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
         callbacks=[checkpointer, csv_logger],
         validation_data=yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size']),
         validation_steps=hyperpar['num_batch_validate'])
-
+    print("Saving network")
     gpumodel.save(sav_name)
 
     # Evaluate model
 #    _, accuracy
+    print("Evaluating accuracy")
     accuracy = gpumodel.evaluate_generator(yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size']),
                                            steps=allzem.shape[0],
                                            verbose=0)
