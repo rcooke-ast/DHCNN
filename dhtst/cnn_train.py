@@ -311,15 +311,12 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
                 # Increment the counter
                 cntr_batch += 1
         plt.show()
+        break
         indict['input_1'] = X_batch.copy()
         # Store output
         outdict = {'output_ID': label_ID,
                    'output_sh': label_sh}
-        yield (indict, outdict)
-
-        cntr_batch += 1
-        if cntr_batch >= zem.shape[0]:
-            cntr_batch = 0
+        #yield (indict, outdict)
 
 
 def build_model_simple(hyperpar):
