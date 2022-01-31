@@ -224,13 +224,13 @@ def generate_dataset_trueqsos(rest_window=30.0):
         allWave[:sz, qq] = wave[ww].copy()
         allFlux[:sz, qq] = this_flx
         allFlue[:sz, qq] = this_fle
-        allStat[:sz, qq] = dat[1].data['STATUS'][ww]
+        allStat[:sz, qq] = (dat[1].data['STATUS'][ww]==1).astype(np.float)
         # Find the regions that are consistent with the continuum
         nsigma = 2
         window = 5
         wc = (np.abs((this_flx-cont)/this_fle) < nsigma).astype(np.float)
         msk = (uniform_filter1d(wc, size=window) == 1).astype(np.float)
-        allStat[:sz, qq] *= msk
+        allStat[:sz, qq] *= (msk+1)  # So, 0=bad, 1=good, 2=clean
     # Save the data
     np.save("../data/train_data/true_qsos_DH/wave_{0:.2f}.npy".format(rest_window), allWave)
     np.save("../data/train_data/true_qsos_DH/flux_{0:.2f}.npy".format(rest_window), allFlux)
@@ -267,48 +267,53 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
     """
     Based on imprinting a DLA on observations of _real_ QSOs
     """
-    cntr_batch = 0
+    nqso = zem.shape[0]
     while True:
         indict = ({})
-        toobad = 0
-        qso = cntr_batch
-        while True:
-            zdmin = max(zdla_min, ((wave[0, qso]+restwin)/LyaD) - 1.0)  # Can't have a DLA below the data for this QSO
-            zdmax = min(zdla_max, zem[qso])  # Can't have a DLA above the QSO redshift
-            dla = np.random.uniform(zdmin, zdmax)
-            amin = np.argmin(np.abs(wave[:, qso] - LyaD * (1 + dla)))
-            imin = amin - spec_len // 2
-            imax = amin - spec_len // 2 + spec_len
-            bd = np.where(stat[imin:imax, qso] != 1)
-            if bd[0].size == 0:
-                break
-            elif toobad > 10:
-                # Can't find anything in this QSO, move onto the next one, reset the toobad counter
-                qso += 1
-                cntr_batch += 1
-                if cntr_batch >= zem.shape[0]:
-                    qso = 0
-                    cntr_batch = 0
-                toobad = 0
-            else:
-                toobad += 1
-        # We've found a good system, now extract the data
+        # Setup batch params
         X_batch = np.zeros((batch_sz, spec_len, 1))
         yld_NHI = np.random.uniform(NHI_min, NHI_max, batch_sz)
         yld_DH = np.random.uniform(DH_min, DH_max, batch_sz)
-        yld_shft = np.random.uniform(shft_min, shft_max, batch_sz)
         yld_dopp = np.random.uniform(turb_min, turb_max, batch_sz)
         yld_temp = np.random.uniform(temp_min, temp_max, batch_sz)
-        for mm in range(batch_sz):
-            dla_snd = dla * yld_shft[mm]
-            model = utils.DH_model([yld_NHI[mm], yld_DH[mm], dla_snd, yld_dopp[mm], yld_temp[mm]], wave[imin:imax, qso], vfwhm)
-            # Determine the extra noise needed to maintain the same flue
-            exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model**2))
-            # Add this noise to the data
-            X_batch[mm, :, 0] = flux[imin:imax, qso]*model + exnse
+        label_ID = np.zeros(batch_sz)
+        label_sh = np.random.uniform(shft_min, shft_max, batch_sz)
+        # Prepare the batch
+        cntr_batch = 0
+        while cntr_batch < batch_sz:
+            # Select a random QSO
+            qso = np.random.randint(0, nqso)
+            zdmin = max(zdla_min, ((wave[0, qso]+restwin)/LyaD) - 1.0)  # Can't have a DLA below the data for this QSO
+            zdmax = min(zdla_max, zem[qso])  # Can't have a DLA above the QSO redshift
+            pxmin = np.argmin(np.abs(wave[:, qso] - LyaD * (1 + zdmin)))
+            pxmax = np.argmax(np.abs(wave[:, qso] - LyaD * (1 + zdmax)))
+            abs = np.random.randint(pxmin, pxmax)
+            imin = abs - spec_len // 2 + int(np.round(label_sh[cntr_batch]))
+            imax = abs - spec_len // 2 + spec_len + int(np.round(label_sh[cntr_batch]))
+            bd = np.where(stat[imin:imax, qso] == 0)
+            if bd[0].size == 0:
+                # This is a good system fill it in
+                label_ID[cntr_batch] = stat[abs, qso]-1  # 0 for no absorption, 1 for absorption
+                if stat[abs, qso] == 2:
+                    zpix = abs+int(np.floor(label_sh[cntr_batch]))
+                    wval = wave[zpix] + (wave[zpix+1]-wave[zpix])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
+                    zval = (wval/LyaD) - 1
+                    model = utils.DH_model([yld_NHI[cntr_batch], yld_DH[cntr_batch], zval, yld_dopp[cntr_batch], yld_temp[cntr_batch]],
+                                           wave[imin:imax, qso], vfwhm)
+                    # Determine the extra noise needed to maintain the same flue
+                    exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model ** 2))
+                    # Add this noise to the data
+                    X_batch[cntr_batch, :, 0] = flux[imin:imax, qso] * model + exnse
+                    plt.subplot(batch_sz,1,cntr_batch+1)
+                    plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
+                    plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0], 'r-', drawstyle='steps-mid')
+                # Increment the counter
+                cntr_batch += 1
+        plt.show()
         indict['input_1'] = X_batch.copy()
         # Store output
-        outdict = {'output_NHI': yld_NHI}
+        outdict = {'output_ID': label_ID,
+                   'output_sh': label_sh}
         yield (indict, outdict)
 
         cntr_batch += 1
@@ -473,7 +478,7 @@ def localise_features(mnum, repeats=3):
 
 # Run the code...
 gendata = False
-pltrange = True
+pltrange = False
 if gendata:
     # Generate data
     generate_dataset_trueqsos(rest_window=restwin)
