@@ -55,7 +55,9 @@ turb_min, turb_max = 2.0, 7.0
 temp_min, temp_max = 1.0E4, 2.5E4
 shft_min, shft_max = -10, +10
 
-restwin = 0.5*spec_len*velstep*1215.6701/299792.458  # Rest window in angstroms (the full window size is twice this)
+LyaD = 1215.3394
+LyaH = 1215.6701
+restwin = 0.5*spec_len*velstep*LyaD/299792.458  # Rest window in angstroms (the full window size is twice this)
 vfwhm = 7.0  # velocity FWHM in km/s
 
 
@@ -186,8 +188,8 @@ def generate_dataset_trueqsos(rest_window=30.0):
         zem = qso['zem_Adopt']
         # Load the data
         dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
-        wvmax = (1+zem)*(1215.6701+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
-        wvmin = (1+zdla_min)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
+        wvmax = (1+zem)*(LyaH+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
+        wvmin = (1+zdla_min)*(LyaH-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
         wave = dat[1].data['WAVE']
         ww = np.where((wave > wvmin) & (wave < wvmax))
         sz = wave[ww].size
@@ -211,8 +213,8 @@ def generate_dataset_trueqsos(rest_window=30.0):
         allzem[qq] = zem
         # Load the data
         dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
-        wvmax = (1+zem)*(1215.6701+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
-        wvmin = (1+zdla_min)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
+        wvmax = (1+zem)*(LyaH+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
+        wvmin = (1+zdla_min)*(LyaH-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
         wave = dat[1].data['WAVE']
         ww = np.where((wave > wvmin) & (wave < wvmax))
         sz = wave[ww].size
@@ -239,70 +241,6 @@ def generate_dataset_trueqsos(rest_window=30.0):
     return
 
 
-def generate_dataset(rest_window=30.0, nsubpix=10):
-    """
-    This routine generates perfect data, nqso*nrep.
-
-    """
-    filename = '../data/DR1_quasars_master_trimmed.csv'
-    t_trim = Table.read(filename, format='ascii.csv')
-    # Select a random QSO
-    nqso = t_trim['Name_Adopt'].size
-    # Just get the size of the data first
-    maxsz = 0
-    for qq in range(nqso):
-        qso = t_trim[qq]
-        zem = qso['zem_Adopt']
-        # Load the data
-        dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
-        wvmax = (1+zem)*(1215.6701+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
-        wvmin = (1+zdla_min)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
-        wave = dat[1].data['WAVE']
-        ww = np.where((wave > wvmin) & (wave < wvmax))
-        sz = wave[ww].size
-        if sz > maxsz: maxsz = sz
-        stat = dat[1].data['STATUS'][ww]
-        bd = np.where(stat != 1)
-        if bd[0].size != 0:
-            print("Number of bad pixels in QSO {0:d} = {1:d}".format(qq, bd[0].size))
-        gd = np.where(stat == 1)
-        if gd[0].size < spec_len:
-            print("WARNING :: Not enough good pixels in QSO {0:d}".format(qq))
-    # Generate the data arrays and insert the data
-    allWave = np.zeros((maxsz, nqso))
-    allCont = np.zeros((maxsz, nqso))
-    allFlux = np.zeros((maxsz, nqso))
-    allFlue = np.zeros((maxsz, nqso))
-    allStat = np.zeros((maxsz, nqso))
-    allzem  = np.zeros(nqso)
-    for qq in range(nqso):
-        qso = t_trim[qq]
-        zem = qso['zem_Adopt']
-        allzem[qq] = zem
-        # Load the data
-        dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
-        wvmax = (1+zem)*(1215.6701+rest_window)  # Data will not be used to the right of the QSO Lya emission line + rest+window (the rest_window is to include the DLA profile)
-        wvmin = (1+zdla_min)*(1215.6701-rest_window)  # Now data are needed below this DLA cutoff redshift... minus the rest window
-        wave = dat[1].data['WAVE']
-        ww = np.where((wave > wvmin) & (wave < wvmax))
-        sz = wave[ww].size
-        cont = dat[1].data['CONTINUUM'][ww]
-        allWave[:sz, qq] = wave[ww].copy()
-        allFlux[:sz, qq] = dat[1].data['FLUX'][ww] * cont
-        allCont[:sz, qq] = cont
-        allFlue[:sz, qq] = dat[1].data['ERR'][ww] * cont
-        allStat[:sz, qq] = dat[1].data['STATUS'][ww]
-    # Save the data
-    np.save("../data/train_data/true_qsos/wave_{0:.2f}.npy".format(rest_window), allWave)
-    np.save("../data/train_data/true_qsos/cont_{0:.2f}.npy".format(rest_window), allCont)
-    np.save("../data/train_data/true_qsos/flux_{0:.2f}.npy".format(rest_window), allFlux)
-    np.save("../data/train_data/true_qsos/flue_{0:.2f}.npy".format(rest_window), allFlue)
-    np.save("../data/train_data/true_qsos/stat_{0:.2f}.npy".format(rest_window), allStat)
-    np.save("../data/train_data/true_qsos/zem_{0:.2f}.npy".format(rest_window), allzem)
-    print("Data generated successfully")
-    return
-
-
 def load_dataset_trueqsos(rest_window=30.0):
     allWave = np.load("../data/train_data/true_qsos_DH/wave_{0:.2f}.npy".format(rest_window))
     allFlux = np.load("../data/train_data/true_qsos_DH/flux_{0:.2f}.npy".format(rest_window))
@@ -325,30 +263,6 @@ def load_dataset_trueqsos(rest_window=30.0):
     return allWave, allFlux, allFlue, allStat, allzem
 
 
-def load_dataset(rest_window=30.0):
-    """
-    Load some simulated (perfect) data, and superimpose a DLA on the spectrum when yielding data
-    """
-    # Load the real QSO data
-    allWave = np.load("../data/train_data/true_qsos/wave_{0:.2f}.npy".format(rest_window))
-    allCont = np.load("../data/train_data/true_qsos/cont_{0:.2f}.npy".format(rest_window))
-    allzem = np.load("../data/train_data/true_qsos/zem_{0:.2f}.npy".format(rest_window))
-    # Load the mock (perfect) data
-    fluxdir = "/cosma7/data/durham/rcooke/Cosmo/SandageTest/Logger/FastFit/label_data/"
-    fakewave = fluxdir + "cnn_qsospec_fluxspec_zem3.00_snr0_nspec25000_i0_wave.npy"
-    fakeflux = fluxdir + "cnn_qsospec_fluxspec_zem3.00_snr0_nspec25000_i0_normalised_fluxonly.npy"
-    trainFW = np.load(fakewave)
-    trainFF = np.load(fakeflux)[:5000,:]
-    waveext = trainFW[-1]*(1+velstep/299792.458)**np.arange(1,1+spec_len//2)
-    trainFW = np.append(trainFW, waveext)
-    trainFF = np.append(trainFF, np.ones((trainFF.shape[0], spec_len // 2)), axis=1)
-    # Select the training data
-    trainW = allWave.copy()
-    trainC = allCont.copy()
-    trainZ = allzem.copy()
-    return trainW, trainC, trainFW, trainFF, trainZ
-
-
 def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
     """
     Based on imprinting a DLA on observations of _real_ QSOs
@@ -359,10 +273,10 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
         toobad = 0
         qso = cntr_batch
         while True:
-            zdmin = max(zdla_min, ((wave[0, qso]+restwin)/1215.6701) - 1.0)  # Can't have a DLA below the data for this QSO
+            zdmin = max(zdla_min, ((wave[0, qso]+restwin)/LyaD) - 1.0)  # Can't have a DLA below the data for this QSO
             zdmax = min(zdla_max, zem[qso])  # Can't have a DLA above the QSO redshift
             dla = np.random.uniform(zdmin, zdmax)
-            amin = np.argmin(np.abs(wave[:, qso] - 1215.6701 * (1 + dla)))
+            amin = np.argmin(np.abs(wave[:, qso] - LyaD * (1 + dla)))
             imin = amin - spec_len // 2
             imax = amin - spec_len // 2 + spec_len
             bd = np.where(stat[imin:imax, qso] != 1)
@@ -387,7 +301,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
         yld_temp = np.random.uniform(temp_min, temp_max, batch_sz)
         for mm in range(batch_sz):
             dla_snd = dla * yld_shft[mm]
-            model = utils.DH_model([yld_NHI[mm], yld_DH[mm], dla_snd, yld_dopp[mm], yld_temp[mm]], wave[imin:imax, qso])
+            model = utils.DH_model([yld_NHI[mm], yld_DH[mm], dla_snd, yld_dopp[mm], yld_temp[mm]], wave[imin:imax, qso], vfwhm)
             # Determine the extra noise needed to maintain the same flue
             exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model**2))
             # Add this noise to the data

@@ -66,7 +66,7 @@ def voigt(par, wavein, logn=True):
     return np.exp(-tau)
 
 
-def DH_model(par, wavein):
+def DH_model(par, wavein, vfwhm):
     NHI, DH, zabs, dopp, temp = par
     model = np.ones(wavein.size)
     # Generate H I profile
@@ -78,6 +78,8 @@ def DH_model(par, wavein):
     wcen = 1215.3394
     model *= voigt([NHI+DH, zabs, bval, wcen], wavein)
     convmodel = convolve(model, wavein, 7.0)
+    convmodel[0:2] = convmodel[2]
+    convmodel[-2:] = convmodel[-3]
     return convmodel
 
 
