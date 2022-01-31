@@ -103,23 +103,23 @@ def hyperparam_orig(mnum):
                          num_batch_train    = [128],
                          num_batch_validate = [32],
                          # Number of filters in each convolutional layer
-                         conv_filter_1 = [128],
-                         conv_filter_2 = [64],
-                         conv_filter_3 = [64],
+                         conv_filter_1 = [16],
+                         conv_filter_2 = [16],
+                         conv_filter_3 = [16],
                          # Kernel size
-                         conv_kernel_1 = [32],
-                         conv_kernel_2 = [32],
-                         conv_kernel_3 = [32],
+                         conv_kernel_1 = [16],
+                         conv_kernel_2 = [16],
+                         conv_kernel_3 = [16],
                          # Stride of each kernal
                          conv_stride_1 = [2],
                          conv_stride_2 = [2],
                          conv_stride_3 = [2],
                          # Pooling kernel size
-                         pool_kernel_1 = [8],
-                         pool_kernel_2 = [8],
-                         pool_kernel_3 = [8],
+                         pool_kernel_1 = [1],
+                         pool_kernel_2 = [1],
+                         pool_kernel_3 = [1],
                          # Pooling stride
-                         pool_stride_1 = [2],
+                         pool_stride_1 = [1],
                          pool_stride_2 = [1],
                          pool_stride_3 = [1],
                          # Fully connected layers
