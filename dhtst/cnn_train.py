@@ -68,7 +68,8 @@ def mse_mask():
     # Create a loss function that adds the MSE loss to the mean of all squared activations of a specific layer
     def loss(y_true, y_pred):
         epsilon = K.ones_like(y_true[0,:])*0.00001
-        return K.mean( (y_true/(y_true+epsilon)) * K.square(y_pred - y_true), axis=-1)
+        return K.mean( (y_true/(y_true+epsilon)) * K.sqrt(K.abs(y_pred - y_true)), axis=-1)
+        # return K.mean( (y_true/(y_true+epsilon)) * K.square(y_pred - y_true), axis=-1)
         #return K.mean(K.square(y_pred - y_true), axis=-1)
     # Return a function
     return loss
