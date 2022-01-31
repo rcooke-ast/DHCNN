@@ -6,6 +6,7 @@ import astropy.io.fits as fits
 from IPython import embed
 from scipy.ndimage import uniform_filter1d
 from scipy import interpolate
+from matplotlib import pyplot as plt
 import utils
 
 print("Need to activate the environment: conda activate py37")
@@ -369,6 +370,7 @@ def build_model_simple(hyperpar):
 def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
                    hyperpar, mnum, epochs=10, verbose=1):
     yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'])
+    embed()
     assert(False)
     filepath = os.path.dirname(os.path.abspath(__file__))
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
@@ -489,7 +491,6 @@ elif pltrange:
     NHvals = np.linspace(NHI_min, NHI_max, nNHI)
     wdvals = np.linspace(temp_min, temp_max, nwid)
     cnt=1
-    from matplotlib import pyplot as plt
     for nn in range(nNHI):
         for ww in range(nwid):
             par = [NHvals[nn], -4.6, 0.0, 0.0, wdvals[ww]]
