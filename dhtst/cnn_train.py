@@ -413,12 +413,12 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
     if summary:
         with open(filepath + model_name + '.summary', 'w') as f:
             with redirect_stdout(f):
-                model.summary()
+                gpumodel.summary()
     # Plot graph
     plotit = False
     if plotit:
         pngname = filepath + model_name + '.png'
-        plot_model(model, to_file=pngname)
+        plot_model(gpumodel, to_file=pngname)
     # Compile
     loss = {'output_ID': 'binary_crossentropy',
             'output_sh': mse_mask()}
