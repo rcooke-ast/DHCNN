@@ -305,9 +305,11 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
             if bd[0].size == 0:
                 # This is a good system fill it in
                 label_ID[cntr_batch] = stat[abs, qso]-1  # 0 for no absorption, 1 for absorption
+                plt.subplot(batch_sz, 1, cntr_batch + 1)
+                plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
                 if stat[abs, qso] == 2:
                     zpix = abs+int(np.floor(label_sh[cntr_batch]))
-                    wval = wave[zpix] + (wave[zpix+1]-wave[zpix])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
+                    wval = wave[zpix, qso] + (wave[zpix+1, qso]-wave[zpix, qso])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
                     zval = (wval/LyaD) - 1
                     model = utils.DH_model([yld_NHI[cntr_batch], yld_DH[cntr_batch], zval, yld_dopp[cntr_batch], yld_temp[cntr_batch]],
                                            wave[imin:imax, qso], vfwhm)
@@ -315,9 +317,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
                     exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model ** 2))
                     # Add this noise to the data
                     X_batch[cntr_batch, :, 0] = flux[imin:imax, qso] * model + exnse
-                    plt.subplot(batch_sz,1,cntr_batch+1)
-                    plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
-                    plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0], 'r-', drawstyle='steps-mid')
+                    plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0],'r-', drawstyle='steps-mid')
                 # Increment the counter
                 cntr_batch += 1
         plt.show()
