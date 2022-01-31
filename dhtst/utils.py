@@ -77,7 +77,8 @@ def DH_model(par, wavein):
     bval = np.sqrt(dopp**2 + 0.01662892444*temp/2.0141017778)
     wcen = 1215.3394
     model *= voigt([NHI+DH, zabs, bval, wcen], wavein)
-    return model
+    convmodel = convolve(model, wavein, 7.0)
+    return convmodel
 
 
 def get_NHI(NHImin=19.2, NHImax=21.0, zmin=2.6, zmax=3.4, rstate=None, seed=None, numgen=100):
