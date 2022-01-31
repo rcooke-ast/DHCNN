@@ -14,6 +14,7 @@ print("Need to activate the environment: conda activate py37")
 import tensorflow as tf
 from tensorflow.python.client import device_lib
 from keras.utils import plot_model, multi_gpu_model
+import keras.backend as K
 import keras.backend.tensorflow_backend as tfback
 #from tensorflow.keras.utils import multi_gpu_model
 from keras.callbacks import ModelCheckpoint, CSVLogger
@@ -61,6 +62,16 @@ LyaH = 1215.6701
 restwin = 0.5*spec_len*velstep*LyaD/299792.458  # Rest window in angstroms (the full window size is twice this)
 vfwhm = 7.0  # velocity FWHM in km/s
 
+
+# Define custom loss
+def mse_mask():
+    # Create a loss function that adds the MSE loss to the mean of all squared activations of a specific layer
+    def loss(y_true, y_pred):
+        epsilon = K.ones_like(y_true[0,:])*0.00001
+        return K.mean( (y_true/(y_true+epsilon)) * K.square(y_pred - y_true), axis=-1)
+        #return K.mean(K.square(y_pred - y_true), axis=-1)
+    # Return a function
+    return loss
 
 def get_available_gpus():
     local_device_protos = device_lib.list_local_devices()
@@ -113,7 +124,8 @@ def hyperparam_orig(mnum):
                          pool_stride_3 = [1],
                          # Fully connected layers
                          fc1_neurons   = [4096],
-                         fc2_N_neurons = [1]
+                         fc2_ID_neurons = [1],
+                         fc2_sh_neurons = [1]
                          )
     # Generate dictionary of values
     hyperpar = dict({})
@@ -160,7 +172,8 @@ def hyperparam(mnum):
                          pool_stride_3 = [1, 2, 3],
                          # Fully connected layers
                          fc1_neurons   = [256, 512, 1024, 2048],
-                         fc2_N_neurons = [32, 64, 128, 256],
+                         fc2_ID_neurons = [32, 64, 128, 256],
+                         fc2_sh_neurons = [32, 64, 128, 256]
                          )
     # Generate dictionary of values
     hyperpar = dict({})
@@ -305,8 +318,9 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
             if bd[0].size == 0:
                 # This is a good system fill it in
                 label_ID[cntr_batch] = stat[abs, qso]-1  # 0 for no absorption, 1 for absorption
-                plt.subplot(batch_sz, 1, cntr_batch + 1)
-                plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
+                label_sh[cntr_batch] *= label_ID[cntr_batch]  # Don't optimize shift when there's no absorption - zero values are masked
+                # plt.subplot(batch_sz, 1, cntr_batch + 1)
+                # plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
                 if stat[abs, qso] == 2:
                     zpix = abs+int(np.floor(label_sh[cntr_batch]))
                     wval = wave[zpix, qso] + (wave[zpix+1, qso]-wave[zpix, qso])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
@@ -317,22 +331,22 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
                     exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model ** 2))
                     # Add this noise to the data
                     X_batch[cntr_batch, :, 0] = flux[imin:imax, qso] * model + exnse
-                    plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0],'r-', drawstyle='steps-mid')
+                    # plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0],'r-', drawstyle='steps-mid')
                 # Increment the counter
                 cntr_batch += 1
-        plt.show()
-        break
+        # plt.show()
         indict['input_1'] = X_batch.copy()
         # Store output
         outdict = {'output_ID': label_ID,
                    'output_sh': label_sh}
-        #yield (indict, outdict)
+        yield (indict, outdict)
 
 
 def build_model_simple(hyperpar):
     # Extract parameters
     fc1_neurons = hyperpar['fc1_neurons']
-    fc2_N_neurons = hyperpar['fc2_N_neurons']
+    fc2_ID_neurons = hyperpar['fc2_ID_neurons']
+    fc2_sh_neurons = hyperpar['fc2_sh_neurons']
     conv1_kernel = hyperpar['conv_kernel_1']
     conv2_kernel = hyperpar['conv_kernel_2']
     conv3_kernel = hyperpar['conv_kernel_3']
@@ -366,19 +380,22 @@ def build_model_simple(hyperpar):
     fullcon1 = Dense(fc1_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(flatlay)
     drop1 = Dropout(hyperpar['dropout_prob'])(fullcon1)
     # Second fully connected layer
-    fullcon2_N = Dense(fc2_N_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(drop1)
-    drop2_N = Dropout(hyperpar['dropout_prob'])(fullcon2_N)
-    output_N = Dense(1, activation='linear', name='output_NHI')(drop2_N)
-    model = Model(inputs=[input_1], outputs=[output_N])
+    fullcon2_ID = Dense(fc2_ID_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(drop1)
+    drop2_ID = Dropout(hyperpar['dropout_prob'])(fullcon2_ID)
+    fullcon2_sh = Dense(fc2_sh_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(drop1)
+    drop2_sh = Dropout(hyperpar['dropout_prob'])(fullcon2_sh)
+    # Output nodes
+    output_ID = Dense(1, activation='sigmoid', name='output_ID')(drop2_ID)
+    output_sh = Dense(1, activation='linear', name='output_sh')(drop2_sh)
+    model = Model(inputs=[input_1], outputs=[output_ID, output_sh])
     return model
 
 
 # fit and evaluate a model
 def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
                    hyperpar, mnum, epochs=10, verbose=1):
-    yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'])
-    embed()
-    assert(False)
+    # yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'])
+    # assert(False)
     filepath = os.path.dirname(os.path.abspath(__file__))
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
     ngpus = len(get_available_gpus())
@@ -390,26 +407,6 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
         gpumodel = multi_gpu_model(model, gpus=ngpus)
     else:
         gpumodel = build_model_simple(hyperpar)
-    # else:
-    #     inputs = []
-    #     inputs.append(Input(shape=(spec_len, 1), name='input_1'))
-    #     conv1 = Conv1D(filters=128, kernel_size=16, activation='relu')(inputs[0])
-    #     #    pool1 = MaxPooling1D(pool_size=(pool1_kernel,), strides=(pool1_stride,))(conv1)
-    #     pool1 = MaxPooling1D(pool_size=2)(conv1)
-    #     conv2 = Conv1D(filters=128, kernel_size=16, activation='relu')(pool1)
-    #     #    pool2 = MaxPooling1D(pool_size=(pool2_kernel,), strides=(pool2_stride,))(conv2)
-    #     pool2 = MaxPooling1D(pool_size=2)(conv2)
-    #     conv3 = Conv1D(filters=128, kernel_size=16, activation='relu')(pool2)
-    #     pool3 = MaxPooling1D(pool_size=2)(conv3)
-    #     flat = Flatten()(pool3)
-    #
-    #     # Interpretation model
-    #     fullcon1 = Dense(4096, activation='relu')(flat)
-    #     output_N = Dense(1, activation='linear', name='output_N')(fullcon1)
-    #     output_z = Dense(1, activation='linear', name='output_z')(fullcon1)
-    #     output_b = Dense(1, activation='linear', name='output_b')(fullcon1)
-    #     model = Model(inputs=inputs, outputs=[output_N, output_z, output_b])
-    #     gpumodel = multi_gpu_model(model, gpus=ngpus)
 
     # Summarize layers
     summary = True
@@ -423,7 +420,8 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
         pngname = filepath + model_name + '.png'
         plot_model(model, to_file=pngname)
     # Compile
-    loss = {'output_NHI': 'mse'}
+    loss = {'output_ID': 'binary_crossentropy',
+            'output_sh': mse_mask()}
     decay = hyperpar['lr_decay']*hyperpar['learning_rate']/hyperpar['num_epochs']
     optadam = Adam(lr=hyperpar['learning_rate'], decay=decay)
     gpumodel.compile(loss=loss, optimizer=optadam, metrics=['mean_squared_error'])
@@ -435,19 +433,19 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
     csv_logger = CSVLogger(csv_name, append=True)
     # Fit network
     gpumodel.fit_generator(
-        yield_data(trainFW, trainFF, trainZ, hyperpar['batch_size']),
+        yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size']),
         steps_per_epoch=hyperpar['num_batch_train'],  # Total number of batches (i.e. num data/batch size)
         epochs=epochs, verbose=verbose,
         callbacks=[checkpointer, csv_logger],
-        validation_data=yield_data(trainFW, trainFF, trainZ, hyperpar['batch_size']),
+        validation_data=yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size']),
         validation_steps=hyperpar['num_batch_validate'])
 
     gpumodel.save(sav_name)
 
     # Evaluate model
 #    _, accuracy
-    accuracy = gpumodel.evaluate_generator(yield_data(trainFW, trainFF, trainZ, hyperpar['batch_size']),
-                                           steps=trainZ.shape[0],
+    accuracy = gpumodel.evaluate_generator(yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size']),
+                                           steps=allzem.shape[0],
                                            verbose=0)
     return accuracy, gpumodel.metrics_names
 
