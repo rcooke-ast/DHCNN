@@ -49,10 +49,10 @@ tfback._get_available_gpus = _get_available_gpus
 velstep = 2.5    # Pixel size in km/s
 spec_len = 256  # Number of pixels to use
 zdla_min, zdla_max = 2.5, 2.93#3.4
-NHI_min, NHI_max = 17.0, 19.0
+NHI_min, NHI_max = 17.0, 18.5
 DH_min, DH_max = -4.7, -4.5
 turb_min, turb_max = 2.0, 7.0
-temp_min, temp_max = 1.0E4, 3.0E4
+temp_min, temp_max = 1.0E4, 2.5E4
 shft_min, shft_max = -10, +10
 
 restwin = 0.5*spec_len*velstep*1215.6701/299792.458  # Rest window in angstroms (the full window size is twice this)
