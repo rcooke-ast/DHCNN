@@ -488,7 +488,7 @@ elif pltrange:
     for nn in range(nNHI):
         for ww in range(nwid):
             par = [NHvals[nn], -4.6, 0.0, 0.0, wdvals[ww]]
-            model = utils.DH_model(par, wavein)
+            model = utils.DH_model(par, wavein, 7.0)
             plt.subplot(nNHI, nwid, cnt)
             plt.plot(wavein, model, 'k-')
             cnt += 1

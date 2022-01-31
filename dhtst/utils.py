@@ -77,7 +77,7 @@ def DH_model(par, wavein, vfwhm):
     bval = np.sqrt(dopp**2 + 0.01662892444*temp/2.0141017778)
     wcen = 1215.3394
     model *= voigt([NHI+DH, zabs, bval, wcen], wavein)
-    convmodel = convolve(model, wavein, 7.0)
+    convmodel = convolve(model, wavein, vfwhm)
     convmodel[0:2] = convmodel[2]
     convmodel[-2:] = convmodel[-3]
     return convmodel
