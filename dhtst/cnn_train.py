@@ -49,7 +49,7 @@ tfback._get_available_gpus = _get_available_gpus
 velstep = 2.5    # Pixel size in km/s
 spec_len = 256  # Number of pixels to use
 zdla_min, zdla_max = 2.5, 2.93#3.4
-NHI_min, NHI_max = 19.2, 21.0
+NHI_min, NHI_max = 17.0, 19.0
 DH_min, DH_max = -4.7, -4.5
 turb_min, turb_max = 2.0, 7.0
 temp_min, temp_max = 1.0E4, 3.0E4
@@ -303,26 +303,26 @@ def generate_dataset(rest_window=30.0, nsubpix=10):
     return
 
 
-def load_dataset_trueqsos(rest_window=30.0, ftrain=0.9):
+def load_dataset_trueqsos(rest_window=30.0):
     allWave = np.load("../data/train_data/true_qsos_DH/wave_{0:.2f}.npy".format(rest_window))
     allFlux = np.load("../data/train_data/true_qsos_DH/flux_{0:.2f}.npy".format(rest_window))
     allFlue = np.load("../data/train_data/true_qsos_DH/flue_{0:.2f}.npy".format(rest_window))
     allStat = np.load("../data/train_data/true_qsos_DH/stat_{0:.2f}.npy".format(rest_window))
     allzem = np.load("../data/train_data/true_qsos_DH/zem_{0:.2f}.npy".format(rest_window))
-    ntrain = int(ftrain*allzem.shape[0])
-    # Select the training data
-    trainW = allWave[:, :ntrain]
-    trainF = allFlux[:, :ntrain]
-    trainE = allFlue[:, :ntrain]
-    trainS = allStat[:, :ntrain]
-    trainZ = allzem[:ntrain]
-    # Select the test data
-    testW = allWave[:, ntrain:]
-    testF = allFlux[:, ntrain:]
-    testE = allFlue[:, ntrain:]
-    testS = allStat[:, ntrain:]
-    testZ = allzem[:ntrain]
-    return trainW, trainF, trainE, trainS, trainZ, testW, testF, testE, testS, testZ
+    # ntrain = int(ftrain*allzem.shape[0])
+    # # Select the training data
+    # trainW = allWave[:, :ntrain]
+    # trainF = allFlux[:, :ntrain]
+    # trainE = allFlue[:, :ntrain]
+    # trainS = allStat[:, :ntrain]
+    # trainZ = allzem[:ntrain]
+    # # Select the test data
+    # testW = allWave[:, ntrain:]
+    # testF = allFlux[:, ntrain:]
+    # testE = allFlue[:, ntrain:]
+    # testS = allStat[:, ntrain:]
+    # testZ = allzem[:ntrain]
+    return allWave, allFlux, allFlue, allStat, allzem
 
 
 def load_dataset(rest_window=30.0):
@@ -402,52 +402,6 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
             cntr_batch = 0
 
 
-def yield_data(fakewave, fakeflux, zem, batch_sz):
-    """
-    Based on generating perfect data
-    """
-    qso = 0
-    snr = 30
-    while True:
-        indict = ({})
-        zdmin = zdla_min  # Can't have a DLA below the data for this QSO
-        zdmax = min(zdla_max, zem[qso]-0.15)  # Can't have a DLA above the QSO redshift
-        dla = np.random.uniform(zdmin, zdmax)
-        # We've found a good system, now extract the data
-        HI_batch = np.zeros((batch_sz, spec_len, 1))
-        # Generate the DI and HI absorption line system
-        yld_NHI = np.random.uniform(NHI_min, NHI_max, batch_sz)
-        # Now select a few random spectra
-        yld_ff = np.random.randint(0, fakeflux.shape[0], batch_sz)
-        # convert the fake wavelength from z=3 to z=zem
-        final_wave = fakewave*(1+zem[qso])/(1+3.0)
-        amin = np.argmin(np.abs(final_wave - 1215.6701 * (1 + dla)))
-        imin = amin - spec_len // 2
-        imax = amin - spec_len // 2 + spec_len
-        final_cont = 1.0
-        for mm in range(batch_sz):
-            # Generate a model of a high NHI system
-            model = utils.voigt([yld_NHI[mm], dla, 15.0], final_wave)
-            # Combine the model of the continuum, absorption and high NHI system
-            fluxout = final_cont * fakeflux[yld_ff[mm], :] * model
-            # Convolve the spectrum
-            mock_conv = utils.convolve(fluxout, final_wave, vfwhm)
-            # Rebin the spectrum and store as XSpectrum1D
-            final_flux = mock_conv# utils.rebin_subpix(mock_conv, nsubpix=10)
-            # Add some noise
-            noise = np.random.normal(np.zeros(final_flux.size), final_cont/snr)
-            # Add this noise to the data
-            HI_batch[mm, :, 0] = final_flux[imin:imax] + noise[imin:imax]
-        indict['input_1'] = HI_batch.copy()
-        # Store output
-        outdict = {'output_NHI': yld_NHI}
-        yield (indict, outdict)
-
-        qso += 1
-        if qso >= zem.shape[0]:
-            qso = 0
-
-
 def build_model_simple(hyperpar):
     # Extract parameters
     fc1_neurons = hyperpar['fc1_neurons']
@@ -493,10 +447,10 @@ def build_model_simple(hyperpar):
 
 
 # fit and evaluate a model
-def evaluate_model(trainFW, trainFF, trainZ,
+def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
                    hyperpar, mnum, epochs=10, verbose=1):
-    #yield_data(trainW, trainC, trainFW, trainFF, trainZ, hyperpar['batch_size'])
-    #assert(False)
+    yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'])
+    assert(False)
     filepath = os.path.dirname(os.path.abspath(__file__))
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
     ngpus = len(get_available_gpus())
@@ -584,11 +538,11 @@ def localise_features(mnum, repeats=3):
     hyperpar = hyperparam_orig(0)
     #hyperpar = hyperparam(mnum)
     # load data
-    trainW, trainC, trainFW, trainFF, trainZ = load_dataset(rest_window=restwin)
+    allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos(rest_window=restwin)
     # repeat experiment
     allscores = dict({})
     for r in range(repeats):
-        scores, names = evaluate_model(trainFW, trainFF, trainZ,
+        scores, names = evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
                                        hyperpar, mnum, epochs=hyperpar['num_epochs'], verbose=1)
         if r == 0:
             for name in names:
@@ -605,9 +559,26 @@ def localise_features(mnum, repeats=3):
 
 # Run the code...
 gendata = False
+pltrange = True
 if gendata:
     # Generate data
     generate_dataset_trueqsos(rest_window=restwin)
+elif pltrange:
+    wavein = np.linspace(1214.5,1216.5,100)
+    nNHI = 5
+    nwid = 5
+    NHvals = np.linspace(NHI_min, NHI_max, nNHI)
+    wdvals = np.linspace(temp_min, temp_max, nwid)
+    cnt=1
+    from matplotlib import pyplot as plt
+    for nn in range(nNHI):
+        for ww in range(nwid):
+            par = [NHvals[nn], -4.6, 0.0, 0.0, wdvals[ww]]
+            model = utils.DH_model(par, wavein)
+            plt.subplot(nn, ww, cnt)
+            plt.plot(wavein, model, 'k-')
+            cnt += 1
+    plt.show()
 else:
     # Once the data exist, run the experiment
     m_init = 0
