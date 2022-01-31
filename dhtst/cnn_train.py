@@ -476,7 +476,7 @@ def localise_features(mnum, repeats=3):
 
 
 # Run the code...
-gendata = False
+gendata = True
 pltrange = False
 if gendata:
     # Generate data
