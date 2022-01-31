@@ -182,10 +182,7 @@ def convolve(y, x, vfwhm):
     vsigd = vfwhm / const
     ysize = y.shape[0]
     fsigd = 6.0 * vsigd
-    try:
-        dwav = np.gradient(x) / x
-    except ValueError:
-        print(x, x.size)
+    dwav = np.gradient(x) / x
     df = int(np.min([np.int(np.ceil(fsigd / dwav).max()), ysize // 2 - 1]))
     yval = np.ones(2 * df + 1)
     yval[df:2 * df + 1] = (x[df:2 * df + 1] / x[df] - 1.0) / vsigd
