@@ -315,7 +315,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
             imin = abs - spec_len // 2 + int(np.round(label_sh[cntr_batch]))
             imax = abs - spec_len // 2 + spec_len + int(np.round(label_sh[cntr_batch]))
             bd = np.where(stat[imin:imax, qso] == 0)
-            if bd[0].size == 0:
+            if bd[0].size == 0 and imax-imin == spec_len:
                 # This is a good system fill it in
                 label_ID[cntr_batch] = stat[abs, qso]-1  # 0 for no absorption, 1 for absorption
                 label_sh[cntr_batch] *= label_ID[cntr_batch]  # Don't optimize shift when there's no absorption - zero values are masked
@@ -409,7 +409,7 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
         gpumodel = build_model_simple(hyperpar)
 
     # Summarize layers
-    summary = True
+    summary = False
     if summary:
         with open(filepath + model_name + '.summary', 'w') as f:
             with redirect_stdout(f):
