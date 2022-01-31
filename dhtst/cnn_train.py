@@ -222,26 +222,27 @@ def generate_dataset_trueqsos(rest_window=30.0):
         cont = dat[1].data['CONTINUUM'][ww]
         this_flx = dat[1].data['FLUX'][ww]
         this_fle = dat[1].data['ERR'][ww]
-        embed()
-        if False:
-            allWave[:sz, goodID] = wave[ww].copy()
-            allFlux[:sz, goodID] = this_flx
-            allFlue[:sz, goodID] = this_fle
-            allStat[:sz, goodID] = (dat[1].data['STATUS'][ww]==1).astype(np.float)
-            allzem[goodID] = zem
-            # Find the regions that are consistent with the continuum
-            nsigma = 2
-            window = 5
-            wc = (np.abs((this_flx-cont)/this_fle) < nsigma).astype(np.float)
-            msk = (uniform_filter1d(wc, size=window) == 1).astype(np.float)
-            allStat[:sz, goodID] *= (msk+1)  # So, 0=bad, 1=good, 2=clean
-            goodID += 1
+        if np.all(this_fle<0): continue  # Make sure this isn't bad
+        allWave[:sz, goodID] = wave[ww].copy()
+        allFlux[:sz, goodID] = this_flx
+        allFlue[:sz, goodID] = this_fle
+        allStat[:sz, goodID] = (dat[1].data['STATUS'][ww]==1).astype(np.float)
+        allzem[goodID] = zem
+        # Find the regions that are consistent with the continuum
+        nsigma = 2
+        window = 5
+        wc = (np.abs((this_flx-cont)/this_fle) < nsigma).astype(np.float)
+        msk = (uniform_filter1d(wc, size=window) == 1).astype(np.float)
+        allStat[:sz, goodID] *= (msk+1)  # So, 0=bad, 1=good, 2=clean
+        goodID += 1
     # Only keep the good QSOs
+    print("Good = ", goodID, "/", allWave.shape[1])
     allWave = allWave[:, :goodID]
     allFlux = allFlux[:, :goodID]
     allFlue = allFlue[:, :goodID]
     allStat = allStat[:, :goodID]
     allzem = allzem[:goodID]
+    embed()
     # Save the data
     np.save("../data/train_data/true_qsos_DH/wave_{0:.2f}.npy".format(rest_window), allWave)
     np.save("../data/train_data/true_qsos_DH/flux_{0:.2f}.npy".format(rest_window), allFlux)
