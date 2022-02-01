@@ -29,22 +29,22 @@ from keras import regularizers
 from contextlib import redirect_stdout
 
 
-# An unfortunate fix required by injection...
-def _get_available_gpus():
-    """Get a list of available gpu devices (formatted as strings).
-
-    # Returns
-        A list of available GPU devices.
-    """
-    #global _LOCAL_DEVICES
-    if tfback._LOCAL_DEVICES is None:
-        devices = tf.config.list_logical_devices()
-        tfback._LOCAL_DEVICES = [x.name for x in devices]
-    return [x for x in tfback._LOCAL_DEVICES if 'device:gpu' in x.lower()]
-
-
-# This is the fix required
-tfback._get_available_gpus = _get_available_gpus
+# # An unfortunate fix required by injection...
+# def _get_available_gpus():
+#     """Get a list of available gpu devices (formatted as strings).
+#
+#     # Returns
+#         A list of available GPU devices.
+#     """
+#     #global _LOCAL_DEVICES
+#     if tfback._LOCAL_DEVICES is None:
+#         devices = tf.config.list_logical_devices()
+#         tfback._LOCAL_DEVICES = [x.name for x in devices]
+#     return [x for x in tfback._LOCAL_DEVICES if 'device:gpu' in x.lower()]
+#
+#
+# # This is the fix required
+# tfback._get_available_gpus = _get_available_gpus
 
 
 # Now start the calculation...
