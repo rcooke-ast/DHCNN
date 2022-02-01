@@ -124,7 +124,7 @@ def hyperparam_orig(mnum):
                          pool_stride_2 = [1],
                          pool_stride_3 = [1],
                          # Fully connected layers
-                         fc1_neurons   = [4096],
+                         fc1_neurons   = [1024],
                          fc2_ID_neurons = [1],
                          fc2_sh_neurons = [1]
                          )
