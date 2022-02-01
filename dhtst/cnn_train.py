@@ -397,20 +397,21 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
                    hyperpar, mnum, epochs=10, verbose=1):
     # yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'])
     # assert(False)
-    print("UP3")
     filepath = os.path.dirname(os.path.abspath(__file__))
-    print("UP4")
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
-    print("UP5")
     ngpus = len(get_available_gpus())
     print("Number of GPUS = {0:d}".format(ngpus))
     # Construct network
     if ngpus > 1:
+        print("UP2")
         model = build_model_simple(hyperpar)
         # Make this work on multiple GPUs
+        print("UP3")
         gpumodel = multi_gpu_model(model, gpus=ngpus)
     else:
+        print("UP1")
         gpumodel = build_model_simple(hyperpar)
+    print("UP0")
 
     # Summarize layers
     print("Saving summary")
@@ -472,17 +473,13 @@ def summarize_results(scores):
 # Detect features in a dataset
 def localise_features(mnum, repeats=3):
     # Generate hyperparameters
-    print("UP0")
     hyperpar = hyperparam_orig(0)
     #hyperpar = hyperparam(mnum)
     # load data
-    print("UP1")
     allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos(rest_window=restwin)
-    print("UP1.5")
     # repeat experiment
     allscores = dict({})
     for r in range(repeats):
-        print("UP2")
         scores, names = evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
                                        hyperpar, mnum, epochs=hyperpar['num_epochs'], verbose=1)
         if r == 0:
