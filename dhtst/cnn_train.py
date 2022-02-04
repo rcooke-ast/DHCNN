@@ -13,18 +13,15 @@ print("Need to activate the environment: conda activate py37")
 
 import tensorflow as tf
 from tensorflow.python.client import device_lib
-from keras.utils import plot_model, multi_gpu_model
+from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
+from keras.utils import plot_model
 import keras.backend as K
 import keras.backend.tensorflow_backend as tfback
-#from tensorflow.keras.utils import multi_gpu_model
 from keras.callbacks import ModelCheckpoint, CSVLogger
 from keras.optimizers import Adam
 from keras.models import Model, load_model
-from keras.layers import Input
-from keras.layers import Dense
-from keras.layers.convolutional import Conv1D
-from keras.layers.convolutional import MaxPooling1D
-from keras.layers import Dropout, Flatten
+from keras.layers import Input, Dense, Dropout, Flatten
+from keras.layers.convolutional import Conv1D, MaxPooling1D
 from keras import regularizers
 from contextlib import redirect_stdout
 
