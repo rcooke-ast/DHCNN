@@ -9,39 +9,47 @@ from scipy import interpolate
 from matplotlib import pyplot as plt
 import utils
 
-print("Need to activate the environment: conda activate py37")
+print("Need to activate the environment: conda activate py39")
 
-import tensorflow as tf
+#import tensorflow as tf
 from tensorflow.python.client import device_lib
 from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
-from keras.utils import plot_model
-import keras.backend as K
-import keras.backend.tensorflow_backend as tfback
-from keras.callbacks import ModelCheckpoint, CSVLogger
-from keras.optimizers import Adam
-from keras.models import Model, load_model
-from keras.layers import Input, Dense, Dropout, Flatten
-from keras.layers.convolutional import Conv1D, MaxPooling1D
-from keras import regularizers
+from tensorflow.python.keras.utils.vis_utils import plot_model
+import tensorflow.python.keras.backend as K
+from tensorflow.python.keras.callbacks import ModelCheckpoint, CSVLogger
+from tensorflow.python.keras.models import Model, load_model
+from tensorflow.python.keras.layers import Input, Dense, Dropout, Flatten
+from tensorflow.python.keras.layers.convolutional import Conv1D, MaxPooling1D
+from tensorflow.python.keras import regularizers
+from tensorflow.python.keras.optimizers import adam_v2 as Adam
+
+# import keras.backend as K
+# from keras.callbacks import ModelCheckpoint, CSVLogger
+# from keras.optimizers import Adam
+# from keras.models import Model, load_model
+# from keras.layers import Input, Dense, Dropout, Flatten
+# from keras.layers.convolutional import Conv1D, MaxPooling1D
+# from keras import regularizers
+
 from contextlib import redirect_stdout
 
-
+# import keras.backend.tensorflow_backend as tfback
 # An unfortunate fix required by injection...
-def _get_available_gpus():
-    """Get a list of available gpu devices (formatted as strings).
-
-    # Returns
-        A list of available GPU devices.
-    """
-    #global _LOCAL_DEVICES
-    if tfback._LOCAL_DEVICES is None:
-        devices = tf.config.list_logical_devices()
-        tfback._LOCAL_DEVICES = [x.name for x in devices]
-    return [x for x in tfback._LOCAL_DEVICES if 'device:gpu' in x.lower()]
-
-
-# This is the fix required
-tfback._get_available_gpus = _get_available_gpus
+# def _get_available_gpus():
+#     """Get a list of available gpu devices (formatted as strings).
+#
+#     # Returns
+#         A list of available GPU devices.
+#     """
+#     #global _LOCAL_DEVICES
+#     if tfback._LOCAL_DEVICES is None:
+#         devices = tf.config.list_logical_devices()
+#         tfback._LOCAL_DEVICES = [x.name for x in devices]
+#     return [x for x in tfback._LOCAL_DEVICES if 'device:gpu' in x.lower()]
+#
+#
+# # This is the fix required
+# tfback._get_available_gpus = _get_available_gpus
 
 
 # Now start the calculation...
