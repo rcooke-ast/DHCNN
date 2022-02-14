@@ -12,7 +12,7 @@ def load_obj(dirname):
         return pickle.load(f)
 
 filedir = 'fit_data/'
-files = glob.glob(filedir+'model_????.log')
+files = glob.glob(filedir+'model_???.log')
 cntr = 0
 objs = []
 for file in files:
