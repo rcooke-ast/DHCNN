@@ -99,8 +99,8 @@ allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos(rest_window=r
 test_input, test_output = yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, batch_sz)
 input_arr = test_input['input_1']
 test_vals = gpumodel.predict(test_input)
-ID = np.zeros(test_input.shape[1])
-sh = np.zeros(test_input.shape[1])
+ID = np.zeros(input_arr.shape[1])
+sh = np.zeros(input_arr.shape[1])
 ID[spec_len//2-batch_sz//2:spec_len//2-batch_sz//2+batch_sz] = test_output['output_ID']
 sh[spec_len//2-batch_sz//2:spec_len//2-batch_sz//2+batch_sz] = test_output['output_sh']
 plt.plot(input_arr[batch_sz//2, :, 0])
