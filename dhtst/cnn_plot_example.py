@@ -95,20 +95,33 @@ if ngpus > 1:
 else:
     gpumodel = load_model(loadname, compile=False)
 
-allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos(rest_window=restwin)
-test_input, test_output = yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, batch_sz)
-input_arr = test_input['input_1']
-test_vals = gpumodel.predict(test_input)
-ID = np.zeros(input_arr.shape[1])
-sh = np.zeros(input_arr.shape[1])
-ID[spec_len//2-batch_sz//2:spec_len//2-batch_sz//2+batch_sz] = test_output['output_ID']
-sh[spec_len//2-batch_sz//2:spec_len//2-batch_sz//2+batch_sz] = test_output['output_sh']
+cntr = 0
+while True:
+    print(cntr)
+    allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos(rest_window=restwin)
+    test_input, test_output = yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, batch_sz)
+    input_arr = test_input['input_1']
+    test_vals = gpumodel.predict(test_input)
+    ID = np.zeros(input_arr.shape[1])
+    sh = np.zeros(input_arr.shape[1])
+    ID[spec_len//2-batch_sz//2:spec_len//2-batch_sz//2+batch_sz] = test_output['output_ID']
+    sh[spec_len//2-batch_sz//2:spec_len//2-batch_sz//2+batch_sz] = test_output['output_sh']
+    cntr += 1
+    if np.any(ID!=0):
+        break
 print(test_output['output_ID'])
 print(test_output['output_sh'])
+IDt = np.zeros(input_arr.shape[1])
+sht = np.zeros(input_arr.shape[1])
+IDt[spec_len // 2 - batch_sz // 2:spec_len // 2 - batch_sz // 2 + batch_sz] = test_vals['output_ID']
+sht[spec_len // 2 - batch_sz // 2:spec_len // 2 - batch_sz // 2 + batch_sz] = test_vals['output_sh']
+
 plt.subplot(311)
 plt.plot(input_arr[batch_sz//2, :, 0])
 plt.subplot(312)
-plt.plot(ID)
+plt.plot(ID, 'b-')
+plt.plot(IDt, 'r-')
 plt.subplot(313)
-plt.plot(sh)
+plt.plot(sh, 'b-')
+plt.plot(sht, 'r-')
 plt.show()
