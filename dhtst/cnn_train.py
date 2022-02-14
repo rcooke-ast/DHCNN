@@ -507,38 +507,38 @@ def localise_features(mnum, repeats=3):
     # Summarize results
     summarize_results(allscores)
 
-
-# Run the code...
-gendata = False
-pltrange = False
-if gendata:
-    # Generate data
-    generate_dataset_trueqsos(rest_window=restwin)
-elif pltrange:
-    wavein = np.linspace(1214.5,1216.5,100)
-    nNHI = 5
-    nwid = 5
-    NHvals = np.linspace(NHI_min, NHI_max, nNHI)
-    wdvals = np.linspace(temp_min, temp_max, nwid)
-    cnt=1
-    for nn in range(nNHI):
-        for ww in range(nwid):
-            par = [NHvals[nn], -4.6, 0.0, 0.0, wdvals[ww]]
-            model = utils.DH_model(par, wavein, 7.0)
-            plt.subplot(nNHI, nwid, cnt)
-            plt.plot(wavein, model, 'k-')
-            cnt += 1
-    plt.show()
-else:
-    # Once the data exist, run the experiment
-    m_init = 0
-    mnum = m_init
-    localise_features(mnum, repeats=1)
-    # while True:
-    #     try:
-    #         localise_features(mnum, repeats=1)
-    #     except ValueError:
-    #         continue
-    #     mnum += 1
-    #     if mnum >= m_init+1000:
-    #         break
+if __name__ == "__main__":
+    # Run the code...
+    gendata = False
+    pltrange = False
+    if gendata:
+        # Generate data
+        generate_dataset_trueqsos(rest_window=restwin)
+    elif pltrange:
+        wavein = np.linspace(1214.5,1216.5,100)
+        nNHI = 5
+        nwid = 5
+        NHvals = np.linspace(NHI_min, NHI_max, nNHI)
+        wdvals = np.linspace(temp_min, temp_max, nwid)
+        cnt=1
+        for nn in range(nNHI):
+            for ww in range(nwid):
+                par = [NHvals[nn], -4.6, 0.0, 0.0, wdvals[ww]]
+                model = utils.DH_model(par, wavein, 7.0)
+                plt.subplot(nNHI, nwid, cnt)
+                plt.plot(wavein, model, 'k-')
+                cnt += 1
+        plt.show()
+    else:
+        # Once the data exist, run the experiment
+        m_init = 0
+        mnum = m_init
+        localise_features(mnum, repeats=1)
+        # while True:
+        #     try:
+        #         localise_features(mnum, repeats=1)
+        #     except ValueError:
+        #         continue
+        #     mnum += 1
+        #     if mnum >= m_init+1000:
+        #         break
