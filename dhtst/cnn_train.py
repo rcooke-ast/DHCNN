@@ -11,7 +11,6 @@ import utils
 
 print("Need to activate the environment: conda activate py39")
 
-#import tensorflow as tf
 from tensorflow.python.client import device_lib
 from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
 from tensorflow.python.keras.utils.vis_utils import plot_model
@@ -33,6 +32,10 @@ from tensorflow.python.keras.optimizer_v1 import Adam
 # from keras import regularizers
 
 from contextlib import redirect_stdout
+
+# Disable eager execution
+from tensorflow.python.framework.ops import disable_eager_execution
+disable_eager_execution()
 
 # import keras.backend.tensorflow_backend as tfback
 # An unfortunate fix required by injection...
