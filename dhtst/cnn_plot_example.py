@@ -104,6 +104,6 @@ sh = np.zeros(input_arr.shape[1])
 ID[spec_len//2-batch_sz//2:spec_len//2-batch_sz//2+batch_sz] = test_output['output_ID']
 sh[spec_len//2-batch_sz//2:spec_len//2-batch_sz//2+batch_sz] = test_output['output_sh']
 plt.plot(input_arr[batch_sz//2, :, 0])
-plt.plot(ID[batch_sz//2, :, 0])
-plt.plot(sh[batch_sz//2, :, 0])
+plt.plot(ID)
+plt.plot(sh)
 plt.show()
