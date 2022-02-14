@@ -329,8 +329,8 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
                 # This is a good system fill it in
                 label_ID[cntr_batch] = stat[abs, qso]-1  # 0 for no absorption, 1 for absorption
                 label_sh[cntr_batch] *= label_ID[cntr_batch]  # Don't optimize shift when there's no absorption - zero values are masked
-                # plt.subplot(batch_sz, 1, cntr_batch + 1)
-                # plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
+                plt.subplot(batch_sz, 1, cntr_batch + 1)
+                plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
                 if stat[abs, qso] == 2:
                     zpix = abs+int(np.floor(label_sh[cntr_batch]))
                     wval = wave[zpix, qso] + (wave[zpix+1, qso]-wave[zpix, qso])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
@@ -341,15 +341,17 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
                     exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model ** 2))
                     # Add this noise to the data
                     X_batch[cntr_batch, :, 0] = flux[imin:imax, qso] * model + exnse
-                    # plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0],'r-', drawstyle='steps-mid')
+                    plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0],'r-', drawstyle='steps-mid')
+                    plt.axvline(LyaD*(1+zval), 'r-')
+                plt.title("{0:d} - {1:f}", label_ID[cntr_batch], label_sh[cntr_batch])
                 # Increment the counter
                 cntr_batch += 1
-        # plt.show()
+        plt.show()
         indict['input_1'] = X_batch.copy()
         # Store output
         outdict = {'output_ID': label_ID,
                    'output_sh': label_sh}
-        yield (indict, outdict)
+        # yield (indict, outdict)
 
 
 def build_model_simple(hyperpar):
@@ -404,8 +406,8 @@ def build_model_simple(hyperpar):
 # fit and evaluate a model
 def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
                    hyperpar, mnum, epochs=10, verbose=1):
-    # yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'])
-    # assert(False)
+    yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'])
+    assert(False)
     filepath = os.path.dirname(os.path.abspath(__file__))
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
     ngpus = len(get_available_gpus())
