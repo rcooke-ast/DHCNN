@@ -297,7 +297,7 @@ def load_dataset_trueqsos(rest_window=30.0):
     return allWave, allFlux, allFlue, allStat, allzem
 
 
-def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
+def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, debug=False):
     """
     Based on imprinting a DLA on observations of _real_ QSOs
     """
@@ -329,9 +329,10 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
                 # This is a good system fill it in
                 label_ID[cntr_batch] = stat[abs, qso]-1  # 0 for no absorption, 1 for absorption
                 label_sh[cntr_batch] *= label_ID[cntr_batch]  # Don't optimize shift when there's no absorption - zero values are masked
-                plt.subplot(batch_sz, 1, cntr_batch + 1)
-                plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
-                if stat[abs, qso] == 2 or True:
+                if debug:
+                    plt.subplot(batch_sz, 1, cntr_batch + 1)
+                    plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
+                if stat[abs, qso] == 2 or debug:
                     zpix = abs+int(np.floor(label_sh[cntr_batch]))
                     wval = wave[zpix, qso] + (wave[zpix+1, qso]-wave[zpix, qso])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
                     zval = (wval/LyaD) - 1
@@ -341,19 +342,23 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
                     exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model ** 2))
                     # Add this noise to the data
                     X_batch[cntr_batch, :, 0] = flux[imin:imax, qso] * model + exnse
-                    plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0],'r-', drawstyle='steps-mid')
-                    plt.axvline(LyaD*(1+zval))
+                    if debug:
+                        plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0],'r-', drawstyle='steps-mid')
+                        plt.axvline(LyaD*(1+zval))
                 else:
                     X_batch[cntr_batch, :, 0] = flux[imin:imax, qso]
-                plt.title("{0:f} - {1:f}".format(label_ID[cntr_batch], label_sh[cntr_batch]))
+                if debug:
+                    plt.title("{0:f} - {1:f}".format(label_ID[cntr_batch], label_sh[cntr_batch]))
                 # Increment the counter
                 cntr_batch += 1
-        plt.show()
+        if debug:
+            plt.show()
         indict['input_1'] = X_batch.copy()
         # Store output
         outdict = {'output_ID': label_ID,
                    'output_sh': label_sh}
-        # yield (indict, outdict)
+        if not debug:
+            yield (indict, outdict)
 
 
 def build_model_simple(hyperpar):
