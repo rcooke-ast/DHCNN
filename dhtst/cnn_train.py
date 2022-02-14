@@ -343,7 +343,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
                     X_batch[cntr_batch, :, 0] = flux[imin:imax, qso] * model + exnse
                     plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0],'r-', drawstyle='steps-mid')
                     plt.axvline(LyaD*(1+zval), 'r-')
-                plt.title("{0:d} - {1:f}".format(label_ID[cntr_batch], label_sh[cntr_batch]))
+                plt.title("{0:f} - {1:f}".format(label_ID[cntr_batch], label_sh[cntr_batch]))
                 # Increment the counter
                 cntr_batch += 1
         plt.show()
