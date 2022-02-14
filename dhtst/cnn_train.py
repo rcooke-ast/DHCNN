@@ -21,7 +21,8 @@ from tensorflow.python.keras.models import Model, load_model
 from tensorflow.python.keras.layers import Input, Dense, Dropout, Flatten
 from tensorflow.python.keras.layers.convolutional import Conv1D, MaxPooling1D
 from tensorflow.python.keras import regularizers
-from tensorflow.python.keras.optimizers import adam_v2 as Adam
+#from tensorflow.python.keras.optimizers import adam_v2 as Adam
+from tensorflow.python.keras.optimizer_v1 import Adam
 
 # import keras.backend as K
 # from keras.callbacks import ModelCheckpoint, CSVLogger
@@ -408,15 +409,11 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
     print("Number of GPUS = {0:d}".format(ngpus))
     # Construct network
     if ngpus > 1:
-        print("UP2")
         model = build_model_simple(hyperpar)
         # Make this work on multiple GPUs
-        print("UP3")
         gpumodel = multi_gpu_model(model, gpus=ngpus)
     else:
-        print("UP1")
         gpumodel = build_model_simple(hyperpar)
-    print("UP0")
 
     # Summarize layers
     print("Saving summary")
