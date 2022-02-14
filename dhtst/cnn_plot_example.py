@@ -84,7 +84,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, debug=False):
             return (indict, outdict)
 
 mnum = 0
-batch_sz = 10
+batch_sz = 30
 loadname = 'fit_data/model_{0:03d}.hdf5'.format(mnum)
 # Construct network
 ngpus = len(get_available_gpus())
@@ -103,7 +103,12 @@ ID = np.zeros(input_arr.shape[1])
 sh = np.zeros(input_arr.shape[1])
 ID[spec_len//2-batch_sz//2:spec_len//2-batch_sz//2+batch_sz] = test_output['output_ID']
 sh[spec_len//2-batch_sz//2:spec_len//2-batch_sz//2+batch_sz] = test_output['output_sh']
+print(test_output['output_ID'])
+print(test_output['output_sh'])
+plt.subplot(311)
 plt.plot(input_arr[batch_sz//2, :, 0])
+plt.subplot(312)
 plt.plot(ID)
+plt.subplot(313)
 plt.plot(sh)
 plt.show()
