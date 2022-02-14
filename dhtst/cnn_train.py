@@ -414,7 +414,6 @@ def build_model_simple(hyperpar):
 def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
                    hyperpar, mnum, epochs=10, verbose=1):
     yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'])
-    assert(False)
     filepath = os.path.dirname(os.path.abspath(__file__))
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
     ngpus = len(get_available_gpus())
