@@ -401,7 +401,7 @@ def build_model_simple(hyperpar):
     # Second fully connected layer
     fullcon2_ID = Dense(fc2_ID_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(drop1)
     drop2_ID = Dropout(hyperpar['dropout_prob'])(fullcon2_ID)
-    fullcon2_sh = Dense(fc2_sh_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(drop1)
+    fullcon2_sh = Dense(fc2_sh_neurons, activation='linear', kernel_regularizer=regularizers.l2(regpen))(drop1)
     drop2_sh = Dropout(hyperpar['dropout_prob'])(fullcon2_sh)
     # Output nodes
     output_ID = Dense(1, activation='sigmoid', name='output_ID')(drop2_ID)
