@@ -331,7 +331,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
                 label_sh[cntr_batch] *= label_ID[cntr_batch]  # Don't optimize shift when there's no absorption - zero values are masked
                 plt.subplot(batch_sz, 1, cntr_batch + 1)
                 plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
-                if stat[abs, qso] == 2:
+                if stat[abs, qso] == 2 or True:
                     zpix = abs+int(np.floor(label_sh[cntr_batch]))
                     wval = wave[zpix, qso] + (wave[zpix+1, qso]-wave[zpix, qso])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
                     zval = (wval/LyaD) - 1
@@ -343,6 +343,8 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz):
                     X_batch[cntr_batch, :, 0] = flux[imin:imax, qso] * model + exnse
                     plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0],'r-', drawstyle='steps-mid')
                     plt.axvline(LyaD*(1+zval))
+                else:
+                    X_batch[cntr_batch, :, 0] = flux[imin:imax, qso]
                 plt.title("{0:f} - {1:f}".format(label_ID[cntr_batch], label_sh[cntr_batch]))
                 # Increment the counter
                 cntr_batch += 1
