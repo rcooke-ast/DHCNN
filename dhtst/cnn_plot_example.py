@@ -44,14 +44,14 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
         pxmin = np.argmin(np.abs(wave[:, qso] - LyaD * (1 + zdmin)))
         pxmax = np.argmax(np.abs(wave[:, qso] - LyaD * (1 + zdmax)))
         absp = np.random.randint(pxmin, pxmax)
-        imin = absp - spec_len // 2 + int(np.round(label_sh[cntr_batch]))
-        imax = absp - spec_len // 2 + spec_len + int(np.round(label_sh[cntr_batch]))
+        imin = absp - spec_len // 2# + int(np.round(label_sh[cntr_batch]))
+        imax = imin + spec_len# + int(np.round(label_sh[cntr_batch]))
         bd = np.where(stat[imin:imax, qso] == 0)
         if bd[0].size == 0 and stat[imin:imax, qso].size == spec_len:
             for cntr_batch in range(0, batch_sz):
                 zpix = absp + int(np.floor(label_sh[cntr_batch]))
                 # This is a good system fill it in
-                label_ID[cntr_batch] = stat[absp, qso]-1  # 0 for no absorption, 1 for absorption
+                label_ID[cntr_batch] = stat[zpix, qso]-1  # 0 for no absorption, 1 for absorption
                 label_sh[cntr_batch] *= label_ID[cntr_batch]  # Don't optimize shift when there's no absorption - zero values are masked
                 if debug:
                     plt.subplot(batch_sz, 1, cntr_batch + 1)
