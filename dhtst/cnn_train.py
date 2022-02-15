@@ -110,13 +110,13 @@ def hyperparam_orig(mnum):
     mnum (int): Model index number
     """
     # Define all of the allowed parameter space
-    allowed_hpars = dict(spec_len           = [256],
+    allowed_hpars = dict(spec_len           = [179],
                          learning_rate      = [0.0001],
                          lr_decay           = [0.0],
                          l2_regpen          = [0.0],
                          dropout_prob       = [0.1],
-                         num_epochs         = [30],
-                         batch_size         = [1024],
+                         num_epochs         = [20],
+                         batch_size         = [32],
                          num_batch_train    = [128],
                          num_batch_validate = [128],
                          # Number of filters in each convolutional layer
@@ -332,9 +332,9 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
             bd = np.where(stat[imin:imax, qso] == 0)
             if bd[0].size == 0 and stat[imin:imax, qso].size == spec_len:
                 # This is a good system fill it in
-                label_ID[cntr_batch] = stat[absp, qso]-1  # 0 for no absorption, 1 for absorption
-                label_sh[cntr_batch] *= label_ID[cntr_batch]  # Don't optimize shift when there's no absorption - zero values are masked
                 zpix = absp + int(np.floor(label_sh[cntr_batch]))
+                label_ID[cntr_batch] = stat[zpix, qso]-1  # 0 for no absorption, 1 for absorption
+                label_sh[cntr_batch] *= label_ID[cntr_batch]  # Don't optimize shift when there's no absorption - zero values are masked
                 if debug:
                     plt.subplot(batch_sz, 1, cntr_batch + 1)
                     plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
@@ -363,7 +363,8 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
         outdict = {'output_ID': label_ID,
                    'output_sh': label_sh}
         if not debug:
-            yield (indict, outdict)
+            return (indict, outdict)
+            #yield (indict, outdict)
 
 
 def build_model_simple(hyperpar):
@@ -419,7 +420,18 @@ def build_model_simple(hyperpar):
 # fit and evaluate a model
 def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
                    hyperpar, mnum, epochs=10, verbose=1):
-    # yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len'])
+    indict, outdict = yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len'])
+    X_batch = indict['input_1']
+    output_ID, output_sh = outdict['output_ID'], outdict['output_sh']
+    wavetmp = np.arange(X_batch.shape[1])
+    for ff in range(output_ID.size):
+        plt.subplot(ff+1,1,output_ID.size)
+        plt.plot(wavetmp, X_batch[ff,:,0], 'k-', drawstyle='steps-mid')
+        plt.axvline(hyperpar['spec_len']//2, color='b')
+        plt.axvline(hyperpar['spec_len']//2+output_sh[ff], color='r')
+        plt.title("{0:f} - {1:f}".format(output_ID[ff], output_sh[ff]))
+    plt.show()
+    assert(False)
     filepath = os.path.dirname(os.path.abspath(__file__))
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
     ngpus = len(get_available_gpus())
