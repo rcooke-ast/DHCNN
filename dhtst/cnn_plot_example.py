@@ -115,8 +115,8 @@ IDt = np.zeros(input_arr.shape[1])
 sht = np.zeros(input_arr.shape[1])
 print(test_vals)
 print(len(test_vals))
-#IDt[spec_len // 2 - batch_sz // 2:spec_len // 2 - batch_sz // 2 + batch_sz] = test_vals[:,0]
-#sht[spec_len // 2 - batch_sz // 2:spec_len // 2 - batch_sz // 2 + batch_sz] = test_vals[:,1]
+IDt[spec_len // 2 - batch_sz // 2:spec_len // 2 - batch_sz // 2 + batch_sz] = test_vals[:,0]
+sht[spec_len // 2 - batch_sz // 2:spec_len // 2 - batch_sz // 2 + batch_sz] = test_vals[:,1]
 
 plt.subplot(311)
 plt.plot(input_arr[batch_sz//2, :, 0])
