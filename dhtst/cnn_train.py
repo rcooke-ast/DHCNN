@@ -63,8 +63,10 @@ velstep = 2.5    # Pixel size in km/s
 zdla_min, zdla_max = 2.5, 2.93#3.4
 NHI_min, NHI_max = 17.0, 18.2
 DH_min, DH_max = -4.7, -4.5
-turb_min, turb_max = 2.0, 7.0
-temp_min, temp_max = 1.0E4, 2.5E4
+# turb_min, turb_max = 2.0, 7.0
+# temp_min, temp_max = 1.0E4, 2.5E4
+turb_min, turb_max = 1, 2
+temp_min, temp_max = 0.0E4, 0.005E4
 shft_min, shft_max = -10, +10
 
 LyaD = 1215.3394
@@ -339,6 +341,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
                     plt.subplot(batch_sz, 1, cntr_batch + 1)
                     plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
                 if stat[zpix, qso] == 2 or debug:
+                    print(absp, zpix, zval, label_sh[cntr_batch])
                     wval = wave[zpix, qso] + (wave[zpix+1, qso]-wave[zpix, qso])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
                     zval = (wval/LyaD) - 1
                     model = utils.DH_model([yld_NHI[cntr_batch], yld_DH[cntr_batch], zval, yld_dopp[cntr_batch], yld_temp[cntr_batch]],
