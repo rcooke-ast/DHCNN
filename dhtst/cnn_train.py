@@ -329,8 +329,8 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
             pxmin = np.argmin(np.abs(wave[:, qso] - LyaD * (1 + zdmin)))
             pxmax = np.argmax(np.abs(wave[:, qso] - LyaD * (1 + zdmax)))
             absp = np.random.randint(pxmin, pxmax)
-            imin = absp - spec_len // 2 + int(np.round(label_sh[cntr_batch]))
-            imax = absp - spec_len // 2 + spec_len + int(np.round(label_sh[cntr_batch]))
+            imin = absp - spec_len // 2# + int(np.round(label_sh[cntr_batch]))
+            imax = absp - spec_len // 2 + spec_len# + int(np.round(label_sh[cntr_batch]))
             bd = np.where(stat[imin:imax, qso] == 0)
             if bd[0].size == 0 and stat[imin:imax, qso].size == spec_len:
                 # This is a good system fill it in
