@@ -63,10 +63,10 @@ velstep = 2.5    # Pixel size in km/s
 zdla_min, zdla_max = 2.5, 2.93#3.4
 NHI_min, NHI_max = 17.0, 18.2
 DH_min, DH_max = -4.7, -4.5
-# turb_min, turb_max = 2.0, 7.0
-# temp_min, temp_max = 1.0E4, 2.5E4
-turb_min, turb_max = 1, 2
-temp_min, temp_max = 0.0E4, 0.005E4
+turb_min, turb_max = 2.0, 7.0
+temp_min, temp_max = 1.0E4, 2.5E4
+# turb_min, turb_max = 1, 2
+# temp_min, temp_max = 0.0E4, 0.005E4
 shft_min, shft_max = -10, +10
 
 LyaD = 1215.3394
