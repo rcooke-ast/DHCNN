@@ -343,7 +343,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
                 if stat[zpix, qso] == 2 or debug:
                     wval = wave[zpix, qso] + (wave[zpix+1, qso]-wave[zpix, qso])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
                     zval = (wval/LyaD) - 1
-                    print(zval, wave[absp, qso]/LyaD - 1, wave[zpix, qso]/LyaD - 1)
+                    # print(zval, wave[absp, qso]/LyaD - 1, wave[zpix, qso]/LyaD - 1)
                     model = utils.DH_model([yld_NHI[cntr_batch], yld_DH[cntr_batch], zval, yld_dopp[cntr_batch], yld_temp[cntr_batch]],
                                            wave[imin:imax, qso], vfwhm)
                     # Determine the extra noise needed to maintain the same flue
@@ -366,8 +366,8 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
         outdict = {'output_ID': label_ID,
                    'output_sh': label_sh}
         if not debug:
-            return (indict, outdict)
-            #yield (indict, outdict)
+            # return (indict, outdict)
+            yield (indict, outdict)
 
 
 def build_model_simple(hyperpar):
@@ -423,18 +423,20 @@ def build_model_simple(hyperpar):
 # fit and evaluate a model
 def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
                    hyperpar, mnum, epochs=10, verbose=1):
-    indict, outdict = yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len'])
-    X_batch = indict['input_1']
-    output_ID, output_sh = outdict['output_ID'], outdict['output_sh']
-    wavetmp = np.arange(X_batch.shape[1])
-    for ff in range(output_ID.size):
-        plt.subplot(output_ID.size,1,ff+1)
-        plt.plot(wavetmp, X_batch[ff,:,0], 'k-', drawstyle='steps-mid')
-        plt.axvline(hyperpar['spec_len']//2, color='b')
-        plt.axvline(hyperpar['spec_len']//2+output_sh[ff], color='r')
-        plt.title("{0:f} - {1:f}".format(output_ID[ff], output_sh[ff]))
-    plt.show()
-    assert(False)
+    debug = False
+    if debug:
+        indict, outdict = yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len'])
+        X_batch = indict['input_1']
+        output_ID, output_sh = outdict['output_ID'], outdict['output_sh']
+        wavetmp = np.arange(X_batch.shape[1])
+        for ff in range(output_ID.size):
+            plt.subplot(output_ID.size,1,ff+1)
+            plt.plot(wavetmp, X_batch[ff,:,0], 'k-', drawstyle='steps-mid')
+            plt.axvline(hyperpar['spec_len']//2, color='b')
+            plt.axvline(hyperpar['spec_len']//2+output_sh[ff], color='r')
+            plt.title("{0:f} - {1:f}".format(output_ID[ff], output_sh[ff]))
+        plt.show()
+        assert(False)
     filepath = os.path.dirname(os.path.abspath(__file__))
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
     ngpus = len(get_available_gpus())
