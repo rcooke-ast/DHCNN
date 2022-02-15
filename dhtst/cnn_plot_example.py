@@ -1,13 +1,12 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from tensorflow.python.keras.models import load_model
-from cnn_train import get_available_gpus, load_dataset_trueqsos
+from cnn_train import get_available_gpus, load_dataset_trueqsos, get_restwin
 from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
 import utils
 
 # Now start the calculation...
 velstep = 2.5    # Pixel size in km/s
-spec_len = 256  # Number of pixels to use
 zdla_min, zdla_max = 2.5, 2.93#3.4
 NHI_min, NHI_max = 17.0, 18.2
 DH_min, DH_max = -4.7, -4.5
@@ -17,14 +16,14 @@ shft_min, shft_max = -10, +10
 
 LyaD = 1215.3394
 LyaH = 1215.6701
-restwin = 0.5*spec_len*velstep*LyaD/299792.458  # Rest window in angstroms (the full window size is twice this)
 vfwhm = 7.0  # velocity FWHM in km/s
 
 
-def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, debug=False):
+def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=False):
     """
     Based on imprinting a DLA on observations of _real_ QSOs
     """
+    restwin = get_restwin(spec_len)
     nqso = zem.shape[0]
     indict = ({})
     # Setup batch params
@@ -95,10 +94,12 @@ else:
     gpumodel = load_model(loadname, compile=False)
 
 cntr = 0
+print("WARNING - SPEC_LEN NEEDS  TO BE SET ACCORDING TO THE MODEL BEING LOADED!!!")
+spec_len = 179
 while True:
     print(cntr)
-    allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos(rest_window=restwin)
-    test_input, test_output = yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, batch_sz)
+    allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos()
+    test_input, test_output = yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, batch_sz, spec_len)
     input_arr = test_input['input_1']
     test_vals = gpumodel.predict(test_input)
     ID = np.zeros(input_arr.shape[1])

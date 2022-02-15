@@ -494,7 +494,7 @@ def localise_features(mnum, repeats=3):
     hyperpar = hyperparam_orig(0)
     #hyperpar = hyperparam(mnum)
     # load data
-    allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos(rest_window=restwin)
+    allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos()
     # repeat experiment
     allscores = dict({})
     for r in range(repeats):
