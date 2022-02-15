@@ -330,7 +330,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
             pxmax = np.argmax(np.abs(wave[:, qso] - LyaD * (1 + zdmax)))
             absp = np.random.randint(pxmin, pxmax)
             imin = absp - spec_len // 2# + int(np.round(label_sh[cntr_batch]))
-            imax = absp - spec_len // 2 + spec_len# + int(np.round(label_sh[cntr_batch]))
+            imax = imin + spec_len# + int(np.round(label_sh[cntr_batch]))
             bd = np.where(stat[imin:imax, qso] == 0)
             if bd[0].size == 0 and stat[imin:imax, qso].size == spec_len:
                 # This is a good system fill it in
@@ -343,7 +343,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
                 if stat[zpix, qso] == 2 or debug:
                     wval = wave[zpix, qso] + (wave[zpix+1, qso]-wave[zpix, qso])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
                     zval = (wval/LyaD) - 1
-                    print(absp, zpix, label_sh[cntr_batch], zval)
+                    print(zval, wave[absp, qso]/LyaD - 1, wave[zpix, qso]/LyaD - 1)
                     model = utils.DH_model([yld_NHI[cntr_batch], yld_DH[cntr_batch], zval, yld_dopp[cntr_batch], yld_temp[cntr_batch]],
                                            wave[imin:imax, qso], vfwhm)
                     # Determine the extra noise needed to maintain the same flue
