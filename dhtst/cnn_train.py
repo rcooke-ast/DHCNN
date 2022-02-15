@@ -425,7 +425,7 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
     output_ID, output_sh = outdict['output_ID'], outdict['output_sh']
     wavetmp = np.arange(X_batch.shape[1])
     for ff in range(output_ID.size):
-        plt.subplot(ff+1,1,output_ID.size)
+        plt.subplot(output_ID.size,1,ff+1)
         plt.plot(wavetmp, X_batch[ff,:,0], 'k-', drawstyle='steps-mid')
         plt.axvline(hyperpar['spec_len']//2, color='b')
         plt.axvline(hyperpar['spec_len']//2+output_sh[ff], color='r')
