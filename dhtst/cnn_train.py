@@ -109,7 +109,7 @@ def hyperparam_orig(mnum):
     mnum (int): Model index number
     """
     # Define all of the allowed parameter space
-    allowed_hpars = dict(spec_len           = [179],
+    allowed_hpars = dict(spec_len           = [256],
                          learning_rate      = [0.0001],
                          lr_decay           = [0.0],
                          l2_regpen          = [0.0],
@@ -405,9 +405,9 @@ def build_model_simple(hyperpar):
     fullcon1 = Dense(fc1_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(flatlay)
     # Second fully connected layer
     fullcon2_ID = Dense(fc2_ID_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(fullcon1)
-    drop2_ID = Dropout(hyperpar['dropout_prob'])(fullcon2_ID)
+    drop2_ID = Dropout(dropout_prob)(fullcon2_ID)
     fullcon2_sh = Dense(fc2_sh_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(fullcon1)
-    drop2_sh = Dropout(hyperpar['dropout_prob'])(fullcon2_sh)
+    drop2_sh = Dropout(dropout_prob)(fullcon2_sh)
     # Output nodes
     output_ID = Dense(1, activation='sigmoid', name='output_ID')(drop2_ID)
     output_sh = Dense(1, activation='linear', name='output_sh')(drop2_sh)
