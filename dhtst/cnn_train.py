@@ -59,7 +59,6 @@ disable_eager_execution()
 
 # Now start the calculation...
 velstep = 2.5    # Pixel size in km/s
-spec_len = 256  # Number of pixels to use
 zdla_min, zdla_max = 2.5, 2.93#3.4
 NHI_min, NHI_max = 17.0, 18.2
 DH_min, DH_max = -4.7, -4.5
@@ -69,7 +68,6 @@ shft_min, shft_max = -10, +10
 
 LyaD = 1215.3394
 LyaH = 1215.6701
-restwin = 0.5*spec_len*velstep*LyaD/299792.458  # Rest window in angstroms (the full window size is twice this)
 vfwhm = 7.0  # velocity FWHM in km/s
 
 
@@ -83,6 +81,12 @@ def mse_mask():
         #return K.mean(K.square(y_pred - y_true), axis=-1)
     # Return a function
     return loss
+
+
+def get_restwin(spec_len):
+    # Rest window in angstroms (the full window size is twice this)
+    return 0.5 * spec_len * velstep * LyaD / 299792.458
+
 
 def get_available_gpus():
     local_device_protos = device_lib.list_local_devices()
@@ -105,7 +109,8 @@ def hyperparam_orig(mnum):
     mnum (int): Model index number
     """
     # Define all of the allowed parameter space
-    allowed_hpars = dict(learning_rate      = [0.0001],
+    allowed_hpars = dict(spec_len           = [179],
+                         learning_rate      = [0.0001],
                          lr_decay           = [0.0],
                          l2_regpen          = [0.0],
                          dropout_prob       = [0.1],
@@ -195,11 +200,8 @@ def hyperparam(mnum):
     return hyperpar
 
 
-def generate_dataset_trueqsos(rest_window=30.0):
-    """
-    rest_window = Number of REST Angstroms to the left and right of the central DLA profile to use - this is assumed to be an int, for file naming purposes
-    rest_proxqso = number of REST Angstroms to the left of the QSO to use for generating a DLA (only used if non-zero)
-    """
+def generate_dataset_trueqsos(spec_len):
+    rest_window = get_restwin(spec_len)
     filename = '../data/DR1_quasars_master_trimmed.csv'
     t_trim = Table.read(filename, format='ascii.csv')
     # Select a random QSO
@@ -267,21 +269,21 @@ def generate_dataset_trueqsos(rest_window=30.0):
     allStat = allStat[:, :goodID]
     allzem = allzem[:goodID]
     # Save the data
-    np.save("../data/train_data/true_qsos_DH/wave_{0:.2f}.npy".format(rest_window), allWave)
-    np.save("../data/train_data/true_qsos_DH/flux_{0:.2f}.npy".format(rest_window), allFlux)
-    np.save("../data/train_data/true_qsos_DH/flue_{0:.2f}.npy".format(rest_window), allFlue)
-    np.save("../data/train_data/true_qsos_DH/stat_{0:.2f}.npy".format(rest_window), allStat)
-    np.save("../data/train_data/true_qsos_DH/zem_{0:.2f}.npy".format(rest_window), allzem)
+    np.save("../data/train_data/true_qsos_DH/wave.npy", allWave)
+    np.save("../data/train_data/true_qsos_DH/flux.npy", allFlux)
+    np.save("../data/train_data/true_qsos_DH/flue.npy", allFlue)
+    np.save("../data/train_data/true_qsos_DH/stat.npy", allStat)
+    np.save("../data/train_data/true_qsos_DH/zem.npy", allzem)
     print("Data generated successfully")
     return
 
 
-def load_dataset_trueqsos(rest_window=30.0):
-    allWave = np.load("../data/train_data/true_qsos_DH/wave_{0:.2f}.npy".format(rest_window))
-    allFlux = np.load("../data/train_data/true_qsos_DH/flux_{0:.2f}.npy".format(rest_window))
-    allFlue = np.load("../data/train_data/true_qsos_DH/flue_{0:.2f}.npy".format(rest_window))
-    allStat = np.load("../data/train_data/true_qsos_DH/stat_{0:.2f}.npy".format(rest_window))
-    allzem = np.load("../data/train_data/true_qsos_DH/zem_{0:.2f}.npy".format(rest_window))
+def load_dataset_trueqsos():
+    allWave = np.load("../data/train_data/true_qsos_DH/wave.npy")
+    allFlux = np.load("../data/train_data/true_qsos_DH/flux.npy")
+    allFlue = np.load("../data/train_data/true_qsos_DH/flue.npy")
+    allStat = np.load("../data/train_data/true_qsos_DH/stat.npy")
+    allzem = np.load("../data/train_data/true_qsos_DH/zem.npy")
     # ntrain = int(ftrain*allzem.shape[0])
     # # Select the training data
     # trainW = allWave[:, :ntrain]
@@ -298,11 +300,12 @@ def load_dataset_trueqsos(rest_window=30.0):
     return allWave, allFlux, allFlue, allStat, allzem
 
 
-def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, debug=False):
+def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=False):
     """
     Based on imprinting a DLA on observations of _real_ QSOs
     """
     nqso = zem.shape[0]
+    restwin = get_restwin(spec_len)
     while True:
         indict = ({})
         # Setup batch params
@@ -415,7 +418,7 @@ def build_model_simple(hyperpar):
 # fit and evaluate a model
 def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
                    hyperpar, mnum, epochs=10, verbose=1):
-    yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'])
+    # yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len'])
     filepath = os.path.dirname(os.path.abspath(__file__))
     model_name = '/fit_data/model_{0:03d}'.format(mnum)
     ngpus = len(get_available_gpus())
@@ -459,11 +462,11 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
     # Fit network
     print("Begin Fit network")
     gpumodel.fit_generator(
-        yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size']),
+        yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len']),
         steps_per_epoch=hyperpar['num_batch_train'],  # Total number of batches (i.e. num data/batch size)
         epochs=epochs, verbose=verbose,
         callbacks=[checkpointer, csv_logger],
-        validation_data=yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size']),
+        validation_data=yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len']),
         validation_steps=hyperpar['num_batch_validate'])
     print("Saving network")
     gpumodel.save(sav_name)
@@ -471,7 +474,7 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
     # Evaluate model
 #    _, accuracy
     print("Evaluating accuracy")
-    accuracy = gpumodel.evaluate_generator(yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size']),
+    accuracy = gpumodel.evaluate_generator(yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len']),
                                            steps=allzem.shape[0],
                                            verbose=0)
     return accuracy, gpumodel.metrics_names
@@ -515,7 +518,8 @@ if __name__ == "__main__":
     pltrange = False
     if gendata:
         # Generate data
-        generate_dataset_trueqsos(rest_window=restwin)
+        spec_len = 200  # This just needs to be approximate, and ideally larger than the final optimised value
+        generate_dataset_trueqsos(spec_len)
     elif pltrange:
         wavein = np.linspace(1214.5,1216.5,100)
         nNHI = 5
