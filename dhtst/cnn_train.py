@@ -11,6 +11,7 @@ import utils
 
 print("Need to activate the environment: conda activate py39")
 
+import tensorflow as tf
 from tensorflow.python.client import device_lib
 from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
 from tensorflow.python.keras.utils.vis_utils import plot_model
@@ -76,8 +77,8 @@ vfwhm = 7.0  # velocity FWHM in km/s
 def mse_mask():
     # Create a loss function that adds the MSE loss to the mean of all squared activations of a specific layer
     def loss(y_true, y_pred):
-        epsilon = K.ones_like(y_true[0,:])*0.00001
-        return K.mean( (y_true/(y_true+epsilon)) * K.sqrt(K.abs(y_pred - y_true)), axis=-1)
+        mask = tf.cast(tf.not_equal(y_true, 0), tf.float32)
+        return K.mean(mask * K.sqrt(K.abs(y_pred - y_true)), axis=-1)
         # return K.mean( (y_true/(y_true+epsilon)) * K.square(y_pred - y_true), axis=-1)
         #return K.mean(K.square(y_pred - y_true), axis=-1)
     # Return a function
@@ -104,38 +105,38 @@ def hyperparam_orig(mnum):
     mnum (int): Model index number
     """
     # Define all of the allowed parameter space
-    allowed_hpars = dict(learning_rate      = [0.001],
+    allowed_hpars = dict(learning_rate      = [0.0001],
                          lr_decay           = [0.0],
                          l2_regpen          = [0.0],
-                         dropout_prob       = [0.0],
+                         dropout_prob       = [0.1],
                          num_epochs         = [30],
                          batch_size         = [1024],
                          num_batch_train    = [128],
                          num_batch_validate = [128],
                          # Number of filters in each convolutional layer
-                         conv_filter_1 = [16],
-                         conv_filter_2 = [16],
-                         conv_filter_3 = [16],
+                         conv_filter_1 = [512],
+                         conv_filter_2 = [512],
+                         conv_filter_3 = [512],
                          # Kernel size
-                         conv_kernel_1 = [16],
-                         conv_kernel_2 = [16],
-                         conv_kernel_3 = [16],
+                         conv_kernel_1 = [6],
+                         conv_kernel_2 = [7],
+                         conv_kernel_3 = [4],
                          # Stride of each kernal
-                         conv_stride_1 = [2],
-                         conv_stride_2 = [2],
-                         conv_stride_3 = [2],
+                         conv_stride_1 = [1],
+                         conv_stride_2 = [1],
+                         conv_stride_3 = [1],
                          # Pooling kernel size
-                         pool_kernel_1 = [1],
-                         pool_kernel_2 = [1],
-                         pool_kernel_3 = [1],
+                         pool_kernel_1 = [2],
+                         pool_kernel_2 = [2],
+                         pool_kernel_3 = [2],
                          # Pooling stride
-                         pool_stride_1 = [1],
-                         pool_stride_2 = [1],
-                         pool_stride_3 = [1],
+                         pool_stride_1 = [2, 2, 2],
+                         pool_stride_2 = [2, 2, 2],
+                         pool_stride_3 = [2, 2, 2],
                          # Fully connected layers
-                         fc1_neurons   = [1024],
-                         fc2_ID_neurons = [1],
-                         fc2_sh_neurons = [1]
+                         fc1_neurons   = [64],
+                         fc2_ID_neurons = [32],
+                         fc2_sh_neurons = [256]
                          )
     # Generate dictionary of values
     hyperpar = dict({})
@@ -321,19 +322,19 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, debug=False):
             zdmax = min(zdla_max, zem[qso])  # Can't have a DLA above the QSO redshift
             pxmin = np.argmin(np.abs(wave[:, qso] - LyaD * (1 + zdmin)))
             pxmax = np.argmax(np.abs(wave[:, qso] - LyaD * (1 + zdmax)))
-            abs = np.random.randint(pxmin, pxmax)
-            imin = abs - spec_len // 2 + int(np.round(label_sh[cntr_batch]))
-            imax = abs - spec_len // 2 + spec_len + int(np.round(label_sh[cntr_batch]))
+            absp = np.random.randint(pxmin, pxmax)
+            imin = absp - spec_len // 2 + int(np.round(label_sh[cntr_batch]))
+            imax = absp - spec_len // 2 + spec_len + int(np.round(label_sh[cntr_batch]))
             bd = np.where(stat[imin:imax, qso] == 0)
             if bd[0].size == 0 and stat[imin:imax, qso].size == spec_len:
                 # This is a good system fill it in
-                label_ID[cntr_batch] = stat[abs, qso]-1  # 0 for no absorption, 1 for absorption
+                label_ID[cntr_batch] = stat[absp, qso]-1  # 0 for no absorption, 1 for absorption
                 label_sh[cntr_batch] *= label_ID[cntr_batch]  # Don't optimize shift when there's no absorption - zero values are masked
+                zpix = absp + int(np.floor(label_sh[cntr_batch]))
                 if debug:
                     plt.subplot(batch_sz, 1, cntr_batch + 1)
                     plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
-                if stat[abs, qso] == 2 or debug:
-                    zpix = abs+int(np.floor(label_sh[cntr_batch]))
+                if stat[zpix, qso] == 2 or debug:
                     wval = wave[zpix, qso] + (wave[zpix+1, qso]-wave[zpix, qso])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
                     zval = (wval/LyaD) - 1
                     model = utils.DH_model([yld_NHI[cntr_batch], yld_DH[cntr_batch], zval, yld_dopp[cntr_batch], yld_temp[cntr_batch]],
@@ -381,27 +382,28 @@ def build_model_simple(hyperpar):
     pool1_stride = hyperpar['pool_stride_1']
     pool2_stride = hyperpar['pool_stride_2']
     pool3_stride = hyperpar['pool_stride_3']
+    dropout_prob = hyperpar['dropout_prob']
 
     # Build model
     # Shape is (batches, steps, channels)
     # For example, a 3-color 1D image of side 100 pixels, dealt in batches of 32 would have a shape=(32,100,3)
-    input_1 = Input(shape=(spec_len, 1), name='input_1')
+    input_1 = Input(shape=(hyperpar['spec_len'], 1), name='input_1')
     conv1 = Conv1D(filters=conv1_filter, kernel_size=(conv1_kernel,), strides=(conv1_stride,), activation='relu')(input_1)
     pool1 = MaxPooling1D(pool_size=(pool1_kernel,), strides=(pool1_stride,))(conv1)
     conv2 = Conv1D(filters=conv2_filter, kernel_size=(conv2_kernel,), strides=(conv2_stride,), activation='relu')(pool1)
     pool2 = MaxPooling1D(pool_size=(pool2_kernel,), strides=(pool2_stride,))(conv2)
     conv3 = Conv1D(filters=conv3_filter, kernel_size=(conv3_kernel,), strides=(conv3_stride,), activation='relu')(pool2)
     pool3 = MaxPooling1D(pool_size=(pool3_kernel,), strides=(pool3_stride,))(conv3)
-    flatlay = Flatten()(pool3)
+    drop1 = Dropout(dropout_prob)(pool3)
+    flatlay = Flatten()(drop1)
 
     # Interpretation model
     regpen = hyperpar['l2_regpen']
     fullcon1 = Dense(fc1_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(flatlay)
-    drop1 = Dropout(hyperpar['dropout_prob'])(fullcon1)
     # Second fully connected layer
-    fullcon2_ID = Dense(fc2_ID_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(drop1)
+    fullcon2_ID = Dense(fc2_ID_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(fullcon1)
     drop2_ID = Dropout(hyperpar['dropout_prob'])(fullcon2_ID)
-    fullcon2_sh = Dense(fc2_sh_neurons, activation='linear', kernel_regularizer=regularizers.l2(regpen))(drop1)
+    fullcon2_sh = Dense(fc2_sh_neurons, activation='relu', kernel_regularizer=regularizers.l2(regpen))(fullcon1)
     drop2_sh = Dropout(hyperpar['dropout_prob'])(fullcon2_sh)
     # Output nodes
     output_ID = Dense(1, activation='sigmoid', name='output_ID')(drop2_ID)
