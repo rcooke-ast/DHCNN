@@ -122,7 +122,7 @@ sht[spec_len // 2 - batch_sz // 2:spec_len // 2 - batch_sz // 2 + batch_sz] = pr
 
 for pp in range(batch_sz):
     plt.subplot(6,5,pp+1)
-    if pred_ID > 0.85:
+    if pred_ID[pp] > 0.85:
         plt.plot(input_arr[pp, :, 0])
         plt.axvline(spec_len // 2 + test_output['output_sh'][pp], color='r')
         plt.axvline(spec_len // 2 + pred_sh[pp], color='b')
