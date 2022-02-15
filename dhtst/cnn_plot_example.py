@@ -119,7 +119,7 @@ IDt[spec_len // 2 - batch_sz // 2:spec_len // 2 - batch_sz // 2 + batch_sz] = te
 sht[spec_len // 2 - batch_sz // 2:spec_len // 2 - batch_sz // 2 + batch_sz] = test_vals[1].flatten()
 
 plt.subplot(311)
-plt.plot(input_arr[batch_sz//2, :, 0])
+plt.plot(input_arr[0, :, 0])
 plt.subplot(312)
 plt.plot(ID, 'b-')
 plt.plot(IDt, 'r-')
