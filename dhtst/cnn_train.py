@@ -37,6 +37,7 @@ from contextlib import redirect_stdout
 # Disable eager execution
 from tensorflow.python.framework.ops import disable_eager_execution
 disable_eager_execution()
+tf.compat.v1.experimental.output_all_intermediates(True)
 
 # import keras.backend.tensorflow_backend as tfback
 # An unfortunate fix required by injection...
