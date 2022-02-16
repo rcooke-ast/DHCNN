@@ -150,8 +150,7 @@ if __name__ == "__main__":
     max_iter = 40 # number of search tests
 
     # file paths
-    datapath = 'test_training_spectra_n1000/' # path to spectrum data
-    parsavepath = 'archi_optimisation_logb/cnn_fits_snrNormDisb_opt_selftest_2/' # path to CNN model
+    parsavepath = 'archi_optimisation/cnn_fits/' # path to CNN model
     if not os.path.exists(parsavepath):
         os.mkdir(parsavepath)
 
@@ -162,7 +161,7 @@ if __name__ == "__main__":
     ##### MAIN #####
     start = time.time()
     # load data
-    allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqso()
+    allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos()
 
     # Store hyperparameters
     parsavename = 'mnum%d' \
