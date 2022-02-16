@@ -84,7 +84,7 @@ def train_models(list_par):
                 'lr_decay': 0.0,
                 'l2_regpen': list_par[0][1], #default=0.01
                 'dropout_prob': list_par[0][2],
-                'batch_size': list_par[0][3],
+                'batch_size': int(list_par[0][3]),
                 'num_epochs': 5,
                 'num_batch_train': 64,
                 'num_batch_validate': 64,
