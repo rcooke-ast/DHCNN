@@ -24,7 +24,7 @@ from tensorflow.python.keras.optimizer_v1 import Adam
 import matplotlib as mpl
 mpl.use('Agg') # to use matplotlib without visualisation envs
 from GPyOpt.methods import BayesianOptimization
-from cnn_train import load_dataset_trueqso, yield_data_trueqso, mse_mask, custom_objects, save_obj
+from cnn_train import load_dataset_trueqsos, yield_data_trueqso, mse_mask, custom_objects, save_obj
 
 
 def build_model_simple(hyperpar):

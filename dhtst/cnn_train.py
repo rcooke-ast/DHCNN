@@ -125,6 +125,19 @@ def hyperparam_orig(mnum):
     return hyperpar
 
 
+def custom_objects(hpar):
+    # Loss functions
+    loss = {'output_ID': 'binary_crossentropy',
+            'output_sh': mse_mask()}
+    # Loss weights
+    loss_weights = {'output_ID': 1.0,
+                    'output_sh': 1.0}
+    # Optimizer
+    decay = hpar['lr_decay']*hpar['learning_rate']/hpar['num_epochs']
+    optadam = Adam(lr=hpar['learning_rate'], decay=decay)
+    return loss, loss_weights, optadam
+
+
 def hyperparam(mnum):
     """Generate a random set of hyper parameters
 
@@ -434,11 +447,8 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
         plot_model(gpumodel, to_file=pngname)
     # Compile
     print("Compiling")
-    loss = {'output_ID': 'binary_crossentropy',
-            'output_sh': mse_mask()}
-    decay = hyperpar['lr_decay']*hyperpar['learning_rate']/hyperpar['num_epochs']
-    optadam = Adam(lr=hyperpar['learning_rate'], decay=decay)
-    gpumodel.compile(loss=loss, optimizer=optadam, metrics=['mean_squared_error'])
+    loss, loss_weights, optadam = custom_objects(hyperpar)
+    gpumodel.compile(loss=loss, loss_weights=loss_weights, optimizer=optadam, metrics=['mean_squared_error'])
     print("Compiled")
     # Initialise callbacks
     ckp_name = filepath + model_name + '.hdf5'
