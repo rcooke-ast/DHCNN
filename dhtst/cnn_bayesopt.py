@@ -117,11 +117,11 @@ def train_models(list_par):
                 'ID_loss': 1.0,
                 'sh_loss': 1.0
                 }
-    mdsavename =  'lr%.4f_dp%.2f_cv1f%d_cv2f%d_cv3f%d_cv1k%d_cv2k%d_cv3k%d_fc1%d_fc2ID%d_fc2SH%d_lwID%.4f_lwSH%.4f_speclen%d' \
+    mdsavename =  'lr%.4f_dp%.2f_cv1f%d_cv2f%d_cv3f%d_cv1k%d_cv2k%d_cv3k%d_fc1%d_fc2ID%d_fc2SH%d_lwID%.4f_lwSH%.4f_speclen%d_batchsize%d' \
                   %(hyperpar['learning_rate'], hyperpar['dropout_prob'], hyperpar['conv_filter_1'], hyperpar['conv_filter_2'], hyperpar['conv_filter_3'], \
                     hyperpar['conv_kernel_1'], hyperpar['conv_kernel_2'], hyperpar['conv_kernel_3'], hyperpar['fc1_neurons'], \
                     hyperpar['fc2_ID_neurons'], hyperpar['fc2_sh_neurons'],
-                    hyperpar['ID_loss'], hyperpar['sh_loss'], hyperpar['spec_len'])
+                    hyperpar['ID_loss'], hyperpar['sh_loss'], hyperpar['spec_len'], hyperpar['batch_size'])
     # save the hyperparameters used in the most optimised model, i.e. last model in optimisation
     save_obj(hyperpar, params_save)
     # build training model
