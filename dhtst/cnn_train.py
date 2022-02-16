@@ -9,8 +9,6 @@ from scipy import interpolate
 from matplotlib import pyplot as plt
 import utils
 
-print("Need to activate the environment: conda activate py39")
-
 import tensorflow as tf
 from tensorflow.python.client import device_lib
 from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
@@ -21,16 +19,7 @@ from tensorflow.python.keras.models import Model, load_model
 from tensorflow.python.keras.layers import Input, Dense, Dropout, Flatten
 from tensorflow.python.keras.layers.convolutional import Conv1D, MaxPooling1D
 from tensorflow.python.keras import regularizers
-#from tensorflow.python.keras.optimizers import adam_v2 as Adam
 from tensorflow.python.keras.optimizer_v1 import Adam
-
-# import keras.backend as K
-# from keras.callbacks import ModelCheckpoint, CSVLogger
-# from keras.optimizers import Adam
-# from keras.models import Model, load_model
-# from keras.layers import Input, Dense, Dropout, Flatten
-# from keras.layers.convolutional import Conv1D, MaxPooling1D
-# from keras import regularizers
 
 from contextlib import redirect_stdout
 
@@ -38,25 +27,6 @@ from contextlib import redirect_stdout
 from tensorflow.python.framework.ops import disable_eager_execution
 disable_eager_execution()
 tf.compat.v1.experimental.output_all_intermediates(True)
-
-# import keras.backend.tensorflow_backend as tfback
-# An unfortunate fix required by injection...
-# def _get_available_gpus():
-#     """Get a list of available gpu devices (formatted as strings).
-#
-#     # Returns
-#         A list of available GPU devices.
-#     """
-#     #global _LOCAL_DEVICES
-#     if tfback._LOCAL_DEVICES is None:
-#         devices = tf.config.list_logical_devices()
-#         tfback._LOCAL_DEVICES = [x.name for x in devices]
-#     return [x for x in tfback._LOCAL_DEVICES if 'device:gpu' in x.lower()]
-#
-#
-# # This is the fix required
-# tfback._get_available_gpus = _get_available_gpus
-
 
 # Now start the calculation...
 velstep = 2.5    # Pixel size in km/s
