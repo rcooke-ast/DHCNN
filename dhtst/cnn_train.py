@@ -91,6 +91,8 @@ def hyperparam_orig(mnum):
                          batch_size         = [512],
                          num_batch_train    = [128],
                          num_batch_validate = [128],
+                         ID_loss            = 1.0,
+                         sh_loss            = 1.0,
                          # Number of filters in each convolutional layer
                          conv_filter_1 = [512],
                          conv_filter_2 = [512],
@@ -130,8 +132,8 @@ def custom_objects(hpar):
     loss = {'output_ID': 'binary_crossentropy',
             'output_sh': mse_mask()}
     # Loss weights
-    loss_weights = {'output_ID': 1.0,
-                    'output_sh': 1.0}
+    loss_weights = {'output_ID': hpar['ID_loss'],
+                    'output_sh': hpar['sh_loss']}
     # Optimizer
     decay = hpar['lr_decay']*hpar['learning_rate']/hpar['num_epochs']
     optadam = Adam(lr=hpar['learning_rate'], decay=decay)

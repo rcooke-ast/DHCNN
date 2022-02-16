@@ -76,20 +76,26 @@ def build_model_simple(hyperpar):
     model = Model(inputs=[input_1], outputs=[output_ID, output_sh])
     return model
 
+
 def train_models(list_par):
     hyperpar = {'spec_len': int(list_par[0][0]), #Categorical([37,75,111,147,185,221,259,295]), # 27 - 295 pixels ~ 1.00 - 11.00 A
                 ## Hyper-parameters for machine architecture ##
                 'learning_rate': 0.0001,
+                'lr_decay': 0.0,
                 'l2_regpen': list_par[0][1], #default=0.01
                 'dropout_prob': list_par[0][2],
+                'batch_size': list_par[0][3],
+                'num_epochs': 5,
+                'num_batch_train': 64,
+                'num_batch_validate': 64,
                 # Number of filters in each convolutional layer
-                'conv_filter_1': int(list_par[0][3]),
-                'conv_filter_2': int(list_par[0][4]),
-                'conv_filter_3': int(list_par[0][5]),
+                'conv_filter_1': int(list_par[0][4]),
+                'conv_filter_2': int(list_par[0][5]),
+                'conv_filter_3': int(list_par[0][6]),
                 # Kernel size
-                'conv_kernel_1': int(list_par[0][6]),
-                'conv_kernel_2': int(list_par[0][7]),
-                'conv_kernel_3': int(list_par[0][8]),
+                'conv_kernel_1': int(list_par[0][7]),
+                'conv_kernel_2': int(list_par[0][8]),
+                'conv_kernel_3': int(list_par[0][9]),
                 # Stride size
                 'conv_stride_1': 1,
                 'conv_stride_2': 1,
@@ -103,9 +109,9 @@ def train_models(list_par):
                 'pool_stride_2': 2,
                 'pool_stride_3': 2,
                 # Fully connected layers
-                'fc1_neurons': int(list_par[0][9]),
-                'fc2_ID_neurons': int(list_par[0][10]),
-                'fc2_sh_neurons': int(list_par[0][11]),
+                'fc1_neurons': int(list_par[0][10]),
+                'fc2_ID_neurons': int(list_par[0][11]),
+                'fc2_sh_neurons': int(list_par[0][12]),
                 ## Hyper-parameters for training condition ##
                 # loss_weights
                 'ID_loss': 1.0,
@@ -133,7 +139,7 @@ def train_models(list_par):
     h = gpumodel.fit(
         yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len']),
                     steps_per_epoch=hyperpar['num_batch_train'],
-                    epochs=num_epochs, verbose=0,
+                    epochs=hyperpar['num_epochs'], verbose=0,
                     callbacks=[checkpointer, csv_logger],
                     validation_data= yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len']),
                     validation_steps=hyperpar['num_batch_validate'])
@@ -177,6 +183,7 @@ if __name__ == "__main__":
                 #{'name': 'learning_rate', 'type': 'discrete', 'domain': (0.0001,0.0005)},
                 {'name': 'l2_regpen', 'type': 'discrete', 'domain': (0.,0.01)},
                 {'name': 'dropout_prob', 'type': 'discrete', 'domain': (0.0,0.1,0.2,0.3,0.4,0.5)},
+                {'name': 'batch_size', 'type': 'discrete', 'domain': (32,64,128,512,1024)},
                 {'name': 'conv_filter_1', 'type': 'discrete', 'domain': (64,128,256,512)},
                 {'name': 'conv_filter_2', 'type': 'discrete', 'domain': (64,128,256,512)},
                 {'name': 'conv_filter_3', 'type': 'discrete', 'domain': (64,128,256,512)},
