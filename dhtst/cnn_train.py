@@ -91,8 +91,8 @@ def hyperparam_orig(mnum):
                          batch_size         = [512],
                          num_batch_train    = [128],
                          num_batch_validate = [128],
-                         ID_loss            = 1.0,
-                         sh_loss            = 1.0,
+                         ID_loss            = [1.0],
+                         sh_loss            = [1.0],
                          # Number of filters in each convolutional layer
                          conv_filter_1 = [512],
                          conv_filter_2 = [512],
@@ -110,9 +110,9 @@ def hyperparam_orig(mnum):
                          pool_kernel_2 = [2],
                          pool_kernel_3 = [2],
                          # Pooling stride
-                         pool_stride_1 = [2, 2, 2],
-                         pool_stride_2 = [2, 2, 2],
-                         pool_stride_3 = [2, 2, 2],
+                         pool_stride_1 = [2],
+                         pool_stride_2 = [2],
+                         pool_stride_3 = [2],
                          # Fully connected layers
                          fc1_neurons   = [64],
                          fc2_ID_neurons = [32],
