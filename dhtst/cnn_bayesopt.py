@@ -181,7 +181,7 @@ if __name__ == "__main__":
     # Define all of the allowed parameter space
     list_par = [{'name': 'spec_len', 'type': 'discrete', 'domain': (75,89,103,117,131,145,159,173,187,201,215,229,243,257,271,285,299,313)}, # After the primary test, use the interval of ~0.52A from a size of 7.0A (187) to 11.1A (299)
                 #{'name': 'learning_rate', 'type': 'discrete', 'domain': (0.0001,0.0005)},
-                {'name': 'l2_regpen', 'type': 'discrete', 'domain': (0.,0.01)},
+                {'name': 'l2_regpen', 'type': 'discrete', 'domain': (0.,0.00001)},
                 {'name': 'dropout_prob', 'type': 'discrete', 'domain': (0.0,0.1,0.2,0.3,0.4,0.5)},
                 {'name': 'batch_size', 'type': 'discrete', 'domain': (32,64,128,512,1024)},
                 {'name': 'conv_filter_1', 'type': 'discrete', 'domain': (64,128,256,512,1024)},
