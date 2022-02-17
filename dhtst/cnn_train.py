@@ -326,7 +326,6 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
                             label_sh[cntr_batch] - np.floor(label_sh[cntr_batch]))
                 zval = (wval / LyaD) - 1
                 label_ID[cntr_batch] = stat[zpix, qso]-1  # 0 for no absorption, 1 for absorption
-                label_sh[cntr_batch] *= label_ID[cntr_batch]  # Don't optimize shift when there's no absorption - zero values are masked
                 if debug:
                     plt.subplot(batch_sz, 1, cntr_batch + 1)
                     plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
@@ -335,13 +334,11 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
                     if flag_none[cntr_batch] < flag_fake:
                         DH_send = -10  # Sometimes don't put a D I lines there.
                         label_ID[cntr_batch] = 0
-                        label_sh[cntr_batch] = 0
                     elif flag_none[cntr_batch] < 2*flag_fake:
                         # Sometimes don't put a H I lines there.
                         HI_send = yld_NHI[cntr_batch] - 10
                         DH_send = yld_DH[cntr_batch] + 10
                         label_ID[cntr_batch] = 0
-                        label_sh[cntr_batch] = 0
                     model = utils.DH_model([HI_send, DH_send, zval, yld_dopp[cntr_batch], yld_temp[cntr_batch]],
                                            wave[imin:imax, qso], vfwhm)
                     # Determine the extra noise needed to maintain the same flue
@@ -370,6 +367,8 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
                         X_batch[cntr_batch, :, 0] = flux[imin:imax, qso]
                 if debug:
                     plt.title("{0:f} - {1:f}".format(label_ID[cntr_batch], label_sh[cntr_batch]))
+                # Don't optimize shift when there's no absorption - zero values are masked
+                label_sh[cntr_batch] *= label_ID[cntr_batch]
                 # Increment the counter
                 cntr_batch += 1
         if debug:
