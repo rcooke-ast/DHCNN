@@ -156,7 +156,7 @@ if __name__ == "__main__":
     max_iter = 40 # number of search tests
 
     # file paths
-    parsavepath = 'archi_optimisation/cnn_fits/' # path to CNN model
+    parsavepath = 'archi_optimisation/cnn_fits_fakeD_fakeH/' # path to CNN model
     if not os.path.exists(parsavepath):
         os.mkdir(parsavepath)
 
@@ -184,14 +184,14 @@ if __name__ == "__main__":
                 {'name': 'l2_regpen', 'type': 'discrete', 'domain': (0.,0.01)},
                 {'name': 'dropout_prob', 'type': 'discrete', 'domain': (0.0,0.1,0.2,0.3,0.4,0.5)},
                 {'name': 'batch_size', 'type': 'discrete', 'domain': (32,64,128,512,1024)},
-                {'name': 'conv_filter_1', 'type': 'discrete', 'domain': (64,128,256,512)},
-                {'name': 'conv_filter_2', 'type': 'discrete', 'domain': (64,128,256,512)},
-                {'name': 'conv_filter_3', 'type': 'discrete', 'domain': (64,128,256,512)},
+                {'name': 'conv_filter_1', 'type': 'discrete', 'domain': (64,128,256,512,1024)},
+                {'name': 'conv_filter_2', 'type': 'discrete', 'domain': (64,128,256,512,1024)},
+                {'name': 'conv_filter_3', 'type': 'discrete', 'domain': (64,128,256,512,1024)},
                 {'name': 'conv_kernel_1', 'type': 'discrete', 'domain': (4,6,8,10,12,14)},
                 {'name': 'conv_kernel_2', 'type': 'discrete', 'domain': (3,5,7,9,11)},
                 {'name': 'conv_kernel_3', 'type': 'discrete', 'domain': (2,4,6,8)},
-                {'name': 'fc1_neurons', 'type': 'discrete', 'domain': (32,64,128,256)},
-                {'name': 'fc2_ID_neurons', 'type': 'discrete', 'domain': (32,64,128,256)},
+                {'name': 'fc1_neurons', 'type': 'discrete', 'domain': (32,64,128,256,512,1024)},
+                {'name': 'fc2_ID_neurons', 'type': 'discrete', 'domain': (32,64,128,256,512)},
                 {'name': 'fc2_sh_neurons', 'type': 'discrete', 'domain': (32,64,128,256)}]
     #hyperpar = hyperparam(list_par)
     optSearch = BayesianOptimization(f=train_models, domain=list_par, model_type='GP')
