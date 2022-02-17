@@ -160,7 +160,7 @@ if __name__ == "__main__":
     if not os.path.exists(parsavepath):
         os.mkdir(parsavepath)
 
-    num_epochs = 5
+    num_epochs = 10
     mnum = 0
     random_state = 0 # random_state=None, to have randomly draw samples for each training (for repeated tests) # random_state=0, to fix the shuffle.
 

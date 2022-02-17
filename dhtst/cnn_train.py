@@ -330,7 +330,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
                 if debug:
                     plt.subplot(batch_sz, 1, cntr_batch + 1)
                     plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
-                if stat[zpix, qso] == 2 or debug:
+                if label_ID[cntr_batch] == 1 or debug:
                     HI_send, DH_send = yld_NHI[cntr_batch], yld_DH[cntr_batch]
                     if flag_none[cntr_batch] < flag_fake:
                         DH_send = -10  # Sometimes don't put a D I lines there.
@@ -355,7 +355,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
                     if flag_none[cntr_batch] < 2*flag_fake:
                         HI_send, DH_send = yld_NHI[cntr_batch], yld_DH[cntr_batch]
                         if flag_none[cntr_batch] < flag_fake:
-                            DH_send = -10  # Sometimes don't put a D I lines there.
+                            DH_send = -10  # Sometimes don't put a D I line there.
                         elif flag_none[cntr_batch] < 2 * flag_fake:
                             # Sometimes don't put a H I lines there.
                             HI_send = yld_NHI[cntr_batch] - 10
