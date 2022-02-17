@@ -156,7 +156,7 @@ if __name__ == "__main__":
     max_iter = 40 # number of search tests
 
     # file paths
-    parsavepath = 'archi_optimisation/cnn_fits_fakeD_fakeH/' # path to CNN model
+    parsavepath = 'archi_optimisation/cnn_fits_fakeD_fakeH_noL2/' # path to CNN model
     if not os.path.exists(parsavepath):
         os.mkdir(parsavepath)
 
