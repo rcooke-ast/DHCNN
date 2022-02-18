@@ -497,14 +497,14 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
     print("Preparing checkpoints")
     checkpointer = ModelCheckpoint(filepath=ckp_name, verbose=1, save_best_only=True)
     csv_logger = CSVLogger(csv_name, append=True)
-    lrate = LearningRateScheduler(step_decay)
+    #lrate = LearningRateScheduler(step_decay)
     # Fit network
     print("Begin Fit network")
     gpumodel.fit_generator(
         yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len']),
         steps_per_epoch=hyperpar['num_batch_train'],  # Total number of batches (i.e. num data/batch size)
         epochs=epochs, verbose=verbose,
-        callbacks=[checkpointer, csv_logger, lrate],
+        callbacks=[checkpointer, csv_logger],#, lrate],
         validation_data=yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len']),
         validation_steps=hyperpar['num_batch_validate'])
     print("Saving network")
