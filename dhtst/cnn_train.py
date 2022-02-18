@@ -20,6 +20,7 @@ from tensorflow.python.keras.layers import Input, Dense, Dropout, Flatten
 from tensorflow.python.keras.layers.convolutional import Conv1D, MaxPooling1D
 from tensorflow.python.keras import regularizers
 from tensorflow.python.keras.optimizer_v1 import Adam
+from tensorflow.python.keras.callbacks import LearningRateScheduler
 
 from contextlib import redirect_stdout
 
@@ -54,6 +55,14 @@ def mse_mask():
         #return K.mean(K.square(y_pred - y_true), axis=-1)
     # Return a function
     return loss
+
+
+def step_decay(epoch):
+    initial_lrate = 0.0001
+    drop = 0.8
+    epochs_drop = 10.0
+    lrate = initial_lrate * np.power(drop, np.floor((1+epoch)/epochs_drop))
+    return lrate
 
 
 def get_restwin(spec_len):
@@ -488,13 +497,14 @@ def evaluate_model(allWave, allFlux, allFlue, allStat, allzem,
     print("Preparing checkpoints")
     checkpointer = ModelCheckpoint(filepath=ckp_name, verbose=1, save_best_only=True)
     csv_logger = CSVLogger(csv_name, append=True)
+    lrate = LearningRateScheduler(step_decay)
     # Fit network
     print("Begin Fit network")
     gpumodel.fit_generator(
         yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len']),
         steps_per_epoch=hyperpar['num_batch_train'],  # Total number of batches (i.e. num data/batch size)
         epochs=epochs, verbose=verbose,
-        callbacks=[checkpointer, csv_logger],
+        callbacks=[checkpointer, csv_logger, lrate],
         validation_data=yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, hyperpar['batch_size'], hyperpar['spec_len']),
         validation_steps=hyperpar['num_batch_validate'])
     print("Saving network")
