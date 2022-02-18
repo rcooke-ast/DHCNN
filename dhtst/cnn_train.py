@@ -80,27 +80,29 @@ def hyperparam_orig(mnum):
     """Generate a random set of hyper parameters
 
     mnum (int): Model index number
+    271.    0.    0. 1024.  256.  128.  512.    4.   11.    8. 1024.   32.
+  128.
     """
     # Define all of the allowed parameter space
-    allowed_hpars = dict(spec_len           = [179],
+    allowed_hpars = dict(spec_len           = [271],
                          learning_rate      = [0.0001],
                          lr_decay           = [0.0],
                          l2_regpen          = [0.0],
-                         dropout_prob       = [0.1],
-                         num_epochs         = [20],
-                         batch_size         = [512],
+                         dropout_prob       = [0.01],
+                         num_epochs         = [300],
+                         batch_size         = [1024],
                          num_batch_train    = [128],
                          num_batch_validate = [128],
                          ID_loss            = [1.0],
                          sh_loss            = [1.0],
                          # Number of filters in each convolutional layer
-                         conv_filter_1 = [512],
-                         conv_filter_2 = [512],
+                         conv_filter_1 = [256],
+                         conv_filter_2 = [128],
                          conv_filter_3 = [512],
                          # Kernel size
-                         conv_kernel_1 = [6],
-                         conv_kernel_2 = [7],
-                         conv_kernel_3 = [4],
+                         conv_kernel_1 = [4],
+                         conv_kernel_2 = [11],
+                         conv_kernel_3 = [8],
                          # Stride of each kernal
                          conv_stride_1 = [1],
                          conv_stride_2 = [1],
@@ -114,9 +116,9 @@ def hyperparam_orig(mnum):
                          pool_stride_2 = [2],
                          pool_stride_3 = [2],
                          # Fully connected layers
-                         fc1_neurons   = [64],
+                         fc1_neurons   = [1024],
                          fc2_ID_neurons = [32],
-                         fc2_sh_neurons = [256]
+                         fc2_sh_neurons = [128]
                          )
     # Generate dictionary of values
     hyperpar = dict({})
