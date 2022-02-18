@@ -557,7 +557,7 @@ if __name__ == "__main__":
     pltrange = False
     if gendata:
         # Generate data
-        spec_len = 200  # This just needs to be approximate, and ideally larger than the final optimised value
+        spec_len = 271  # This just needs to be approximate, and ideally larger than the final optimised value
         generate_dataset_trueqsos(spec_len)
     elif pltrange:
         wavein = np.linspace(1214.5,1216.5,100)
