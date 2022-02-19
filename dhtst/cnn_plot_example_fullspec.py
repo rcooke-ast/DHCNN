@@ -74,9 +74,9 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len):
                 exnse = np.random.normal(np.zeros(fmax-fmin), flue[fmin:fmax, qso] * np.sqrt(1 - model ** 2))
                 # Add this noise to the data
                 spec = flux[fmin:fmax, qso] * model + exnse
+                # Don't optimize shift when there's no absorption - zero values are masked
+                label_sh[cntr_batch] *= label_ID[cntr_batch]
                 cntr_batch += 1
-            # Don't optimize shift when there's no absorption - zero values are masked
-            label_sh[cntr_batch] *= label_ID[cntr_batch]
             # Increment the counter
     # Store output
     return (wave[:, qso], spec, zval)
