@@ -125,7 +125,7 @@ else:
 
 cntr = 0
 print("WARNING - SPEC_LEN NEEDS  TO BE SET ACCORDING TO THE MODEL BEING LOADED!!!")
-spec_len = 179
+spec_len = 271
 while True:
     print(cntr)
     allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos()
