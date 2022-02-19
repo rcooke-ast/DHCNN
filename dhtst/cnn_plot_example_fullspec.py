@@ -103,7 +103,10 @@ allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos()
 wave, spec, zval = yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, batch_sz, spec_len)
 IDarr, SHarr = np.zeros(wave.size), np.zeros(wave.size)
 tst_input = ({})
+plt.plot(wave, spec, 'k-', drawstyle='steps-mid')
+plt.show()
 for pp in range(spec_len//2, spec.size-spec_len//2):
+    print(pp, spec_len//2, spec.size-spec_len//2)
     tst_input['input_1'] = spec[pp-spec_len//2:pp-spec_len//2 + spec_len].reshape((1, spec_len, 1))
     tst_output = gpumodel.predict(tst_input)
     IDarr[pp] = tst_output[0].flatten()[0]
