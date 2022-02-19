@@ -69,11 +69,12 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len):
                     DH_send = yld_DH[cntr_batch] + 10
                     label_ID[cntr_batch] = 0
                 model = utils.DH_model([HI_send, DH_send, zval, yld_dopp[cntr_batch], yld_temp[cntr_batch]],
-                                       wave[fmin:fmax, qso], vfwhm)
+                                       wave[imin:imax, qso], vfwhm)
                 # Determine the extra noise needed to maintain the same flue
-                exnse = np.random.normal(np.zeros(fmax-fmin), flue[fmin:fmax, qso] * np.sqrt(1 - model ** 2))
+                exnse = np.random.normal(np.zeros(imax-imin), flue[imin:imax, qso] * np.sqrt(1 - model ** 2))
                 # Add this noise to the data
-                spec = flux[fmin:fmax, qso] * model + exnse
+                spec = flux[:, qso].copy()
+                spec[imin:imax, qso] = flux[imin:imax, qso] * model + exnse
                 # Don't optimize shift when there's no absorption - zero values are masked
                 label_sh[cntr_batch] *= label_ID[cntr_batch]
                 cntr_batch += 1
