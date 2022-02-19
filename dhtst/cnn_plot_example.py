@@ -108,9 +108,8 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
     # Store output
     outdict = {'output_ID': label_ID,
                'output_sh': label_sh}
-    if not debug:
-        # return (indict, outdict)
-        yield (indict, outdict)
+    return (indict, outdict)
+
 mnum = 0
 batch_sz = 30
 loadname = 'fit_data/model_{0:03d}.hdf5'.format(mnum)
