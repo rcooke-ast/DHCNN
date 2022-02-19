@@ -155,6 +155,13 @@ for pp in range(batch_sz):
         plt.plot(input_arr[pp, :, 0])
         plt.axvline(spec_len // 2 + test_output['output_sh'][pp], color='r')
         plt.axvline(spec_len // 2 + pred_sh[pp], color='b')
+        plt.title("%d %f".format(int(test_output['output_ID'][pp]), test_output['output_sh'][pp]), color='b')
+        print("GOOD!", pred_ID[pp])
+    else:
+        plt.plot(input_arr[pp, :, 0])
+        plt.axvline(spec_len // 2 + test_output['output_sh'][pp], color='r')
+        plt.title("%d %f".format(int(test_output['output_ID'][pp]), test_output['output_sh'][pp]), color='r')
+        print("BAD!", pred_ID[pp])
 plt.show()
 
 # plt.subplot(311)
