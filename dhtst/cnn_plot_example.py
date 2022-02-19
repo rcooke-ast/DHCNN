@@ -23,6 +23,7 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
     """
     Based on imprinting a DLA on observations of _real_ QSOs
     """
+    flag_fake = 0.15  # Generate pure H absorption sometimes (no D I line)
     restwin = get_restwin(spec_len)
     nqso = zem.shape[0]
     indict = ({})
@@ -33,54 +34,83 @@ def yield_data_trueqso(wave, flux, flue, stat, zem, batch_sz, spec_len, debug=Fa
     yld_dopp = np.random.uniform(turb_min, turb_max, batch_sz)
     yld_temp = np.random.uniform(temp_min, temp_max, batch_sz)
     label_ID = np.zeros(batch_sz)
-    label_sh = np.linspace(shft_min, shft_max, batch_sz)
+    label_sh = np.random.uniform(shft_min, shft_max, batch_sz)
+    flag_none = np.random.uniform(0, 1, batch_sz)
     # Prepare the batch
     cntr_batch = 0
-    while True:
+    while cntr_batch < batch_sz:
         # Select a random QSO
         qso = np.random.randint(0, nqso)
-        zdmin = max(zdla_min, ((wave[0, qso]+restwin)/LyaD) - 1.0)  # Can't have a DLA below the data for this QSO
+        zdmin = max(zdla_min, ((wave[0, qso] + restwin) / LyaD) - 1.0)  # Can't have a DLA below the data for this QSO
         zdmax = min(zdla_max, zem[qso])  # Can't have a DLA above the QSO redshift
         pxmin = np.argmin(np.abs(wave[:, qso] - LyaD * (1 + zdmin)))
         pxmax = np.argmax(np.abs(wave[:, qso] - LyaD * (1 + zdmax)))
         absp = np.random.randint(pxmin, pxmax)
-        imin = absp - spec_len // 2# + int(np.round(label_sh[cntr_batch]))
-        imax = imin + spec_len# + int(np.round(label_sh[cntr_batch]))
+        imin = absp - spec_len // 2  # + int(np.round(label_sh[cntr_batch]))
+        imax = imin + spec_len  # + int(np.round(label_sh[cntr_batch]))
         bd = np.where(stat[imin:imax, qso] == 0)
         if bd[0].size == 0 and stat[imin:imax, qso].size == spec_len:
-            for cntr_batch in range(0, batch_sz):
-                zpix = absp + int(np.floor(label_sh[cntr_batch]))
-                # This is a good system fill it in
-                label_ID[cntr_batch] = stat[zpix, qso]-1  # 0 for no absorption, 1 for absorption
-                label_sh[cntr_batch] *= label_ID[cntr_batch]  # Don't optimize shift when there's no absorption - zero values are masked
+            # This is a good system fill it in
+            zpix = absp + int(np.floor(label_sh[cntr_batch]))
+            wval = wave[zpix, qso] + (wave[zpix + 1, qso] - wave[zpix, qso]) * (
+                    label_sh[cntr_batch] - np.floor(label_sh[cntr_batch]))
+            zval = (wval / LyaD) - 1
+            label_ID[cntr_batch] = stat[zpix, qso] - 1  # 0 for no absorption, 1 for absorption
+            if debug:
+                plt.subplot(batch_sz, 1, cntr_batch + 1)
+                plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
+            if label_ID[cntr_batch] == 1 or debug:
+                HI_send, DH_send = yld_NHI[cntr_batch], yld_DH[cntr_batch]
+                if flag_none[cntr_batch] < flag_fake:
+                    DH_send = -10  # Sometimes don't put a D I lines there.
+                    label_ID[cntr_batch] = 0
+                elif flag_none[cntr_batch] < 2 * flag_fake:
+                    # Sometimes don't put a H I lines there.
+                    HI_send = yld_NHI[cntr_batch] - 10
+                    DH_send = yld_DH[cntr_batch] + 10
+                    label_ID[cntr_batch] = 0
+                model = utils.DH_model([HI_send, DH_send, zval, yld_dopp[cntr_batch], yld_temp[cntr_batch]],
+                                       wave[imin:imax, qso], vfwhm)
+                # Determine the extra noise needed to maintain the same flue
+                exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model ** 2))
+                # Add this noise to the data
+                X_batch[cntr_batch, :, 0] = flux[imin:imax, qso] * model + exnse
                 if debug:
-                    plt.subplot(batch_sz, 1, cntr_batch + 1)
-                    plt.plot(wave[imin:imax, qso], flux[imin:imax, qso], 'k-', drawstyle='steps-mid')
-                if stat[zpix, qso] == 2 or debug:
-                    wval = wave[zpix, qso] + (wave[zpix+1, qso]-wave[zpix, qso])*(label_sh[cntr_batch]-np.floor(label_sh[cntr_batch]))
-                    zval = (wval/LyaD) - 1
-                    model = utils.DH_model([yld_NHI[cntr_batch], yld_DH[cntr_batch], zval, yld_dopp[cntr_batch], yld_temp[cntr_batch]],
+                    plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0], 'r-', drawstyle='steps-mid')
+                    plt.axvline(LyaD * (1 + zval))
+            else:
+                if flag_none[cntr_batch] < 2 * flag_fake:
+                    HI_send, DH_send = yld_NHI[cntr_batch], yld_DH[cntr_batch]
+                    if flag_none[cntr_batch] < flag_fake:
+                        DH_send = -10  # Sometimes don't put a D I line there.
+                    elif flag_none[cntr_batch] < 2 * flag_fake:
+                        # Sometimes don't put a H I lines there.
+                        HI_send = yld_NHI[cntr_batch] - 10
+                        DH_send = yld_DH[cntr_batch] + 10
+                    # Generate a feature that looks like just H or just D
+                    model = utils.DH_model([HI_send, DH_send, zval, yld_dopp[cntr_batch], yld_temp[cntr_batch]],
                                            wave[imin:imax, qso], vfwhm)
                     # Determine the extra noise needed to maintain the same flue
                     exnse = np.random.normal(np.zeros(spec_len), flue[imin:imax, qso] * np.sqrt(1 - model ** 2))
                     # Add this noise to the data
                     X_batch[cntr_batch, :, 0] = flux[imin:imax, qso] * model + exnse
-                    if debug:
-                        plt.plot(wave[imin:imax, qso], X_batch[cntr_batch, :, 0], 'r-', drawstyle='steps-mid')
-                        plt.axvline(LyaD*(1+zval))
                 else:
                     X_batch[cntr_batch, :, 0] = flux[imin:imax, qso]
-                if debug:
-                    plt.title("{0:f} - {1:f}".format(label_ID[cntr_batch], label_sh[cntr_batch]))
-        if debug:
-            plt.show()
-        indict['input_1'] = X_batch.copy()
-        # Store output
-        outdict = {'output_ID': label_ID,
-                   'output_sh': label_sh}
-        if not debug:
-            return (indict, outdict)
-
+            if debug:
+                plt.title("{0:f} - {1:f}".format(label_ID[cntr_batch], label_sh[cntr_batch]))
+            # Don't optimize shift when there's no absorption - zero values are masked
+            label_sh[cntr_batch] *= label_ID[cntr_batch]
+            # Increment the counter
+            cntr_batch += 1
+    if debug:
+        plt.show()
+    indict['input_1'] = X_batch.copy()
+    # Store output
+    outdict = {'output_ID': label_ID,
+               'output_sh': label_sh}
+    if not debug:
+        # return (indict, outdict)
+        yield (indict, outdict)
 mnum = 0
 batch_sz = 30
 loadname = 'fit_data/model_{0:03d}.hdf5'.format(mnum)
