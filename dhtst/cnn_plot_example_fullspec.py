@@ -112,6 +112,8 @@ for pp in range(spec_len//2, spec.size-spec_len//2):
     IDarr[pp] = tst_output[0].flatten()[0]
     SHarr[pp] = tst_output[1].flatten()[0]
 
+np.savetxt("results.dat", np.transpose((wave, spec, IDarr, SHarr)))
+print(zval)
 fig, axs = plt.subplots(311, sharex=True)
 axs[0].plot(wave, spec, 'k-')
 axs[0].axvline(LyaD*(1+zval), color='r')
