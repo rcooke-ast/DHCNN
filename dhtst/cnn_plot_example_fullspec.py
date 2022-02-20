@@ -5,6 +5,7 @@ from cnn_train import get_available_gpus, load_dataset_trueqsos, get_restwin
 from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
 import utils
 import time
+from IPython import embed
 
 
 # Now start the calculation...
@@ -124,6 +125,7 @@ IDarr = tst_output[0].flatten()
 SHarr = tst_output[1].flatten()
 print("time/spec =", time.time()-a)
 
+embed()
 np.savetxt("test_spec/results.dat", np.transpose((wave/(1+zval), spec, IDarr, SHarr)))
 print(zval)
 wavplt = wave/(1+zval)
