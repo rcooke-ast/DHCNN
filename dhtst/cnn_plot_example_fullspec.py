@@ -113,9 +113,10 @@ tst_input = ({})
 #     SHarr[pp] = tst_output[1].flatten()[0]
 
 a = time.time()
+offs = (spec_len-1)//2
 inarray = np.zeros((spec.size-spec_len-1, spec_len, 1))
-wa = np.arange(2, spec.size-2).reshape((inarray.shape[0],1))
-df = np.arange(-(spec_len-1)//2,spec_len//2+1).reshape((1,spec_len))
+wa = np.arange(offs, spec.size-offs).reshape((inarray.shape[0],1))
+df = np.arange(-offs,spec_len//2+1).reshape((1,spec_len))
 inarray[:,:,0] = spec[wa+df]
 tst_output = gpumodel.predict(tst_input)
 IDarr = tst_output[0].flatten()
