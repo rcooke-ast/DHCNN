@@ -118,6 +118,7 @@ inarray = np.zeros((spec.size-spec_len+1, spec_len, 1))
 wa = np.arange(offs, spec.size-offs).reshape((inarray.shape[0],1))
 df = np.arange(-offs,spec_len//2+1).reshape((1,spec_len))
 inarray[:,:,0] = spec[wa+df]
+tst_input['input_1'] = inarray
 tst_output = gpumodel.predict(tst_input)
 IDarr = tst_output[0].flatten()
 SHarr = tst_output[1].flatten()
