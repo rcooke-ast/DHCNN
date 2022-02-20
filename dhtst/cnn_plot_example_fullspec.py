@@ -114,7 +114,7 @@ tst_input = ({})
 
 a = time.time()
 offs = (spec_len-1)//2
-inarray = np.zeros((spec.size-spec_len-1, spec_len, 1))
+inarray = np.zeros((spec.size-spec_len+1, spec_len, 1))
 wa = np.arange(offs, spec.size-offs).reshape((inarray.shape[0],1))
 df = np.arange(-offs,spec_len//2+1).reshape((1,spec_len))
 inarray[:,:,0] = spec[wa+df]
