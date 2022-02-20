@@ -110,13 +110,14 @@ for pp in range(spec_len//2, spec.size-spec_len//2):
     IDarr[pp] = tst_output[0].flatten()[0]
     SHarr[pp] = tst_output[1].flatten()[0]
 
-np.savetxt("test_spec/results.dat", np.transpose((wave, spec, IDarr, SHarr)))
+np.savetxt("test_spec/results.dat", np.transpose((wave/(1+zval), spec, IDarr, SHarr)))
 print(zval)
+wavplt = wave/(1+zval)
 fig, axs = plt.subplots(311, sharex=True)
-axs[0].plot(wave, spec, 'k-')
-axs[0].axvline(LyaD*(1+zval), color='r')
-axs[1].plot(wave, IDarr, 'k-')
-axs[1].axvline(LyaD*(1+zval), color='r')
-axs[2].plot(wave, SHarr, 'k-')
-axs[2].axvline(LyaD*(1+zval), color='r')
+axs[0].plot(wavplt, spec, 'k-')
+axs[0].axvline(LyaD, color='r')
+axs[1].plot(wavplt, IDarr, 'k-')
+axs[1].axvline(LyaD, color='r')
+axs[2].plot(wavplt, SHarr, 'k-')
+axs[2].axvline(LyaD, color='r')
 plt.show()
