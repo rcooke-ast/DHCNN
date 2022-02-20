@@ -4,6 +4,8 @@ from tensorflow.python.keras.models import load_model
 from cnn_train import get_available_gpus, load_dataset_trueqsos, get_restwin
 from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
 import utils
+import time
+
 
 # Now start the calculation...
 velstep = 2.5    # Pixel size in km/s
@@ -110,6 +112,7 @@ tst_input = ({})
 #     IDarr[pp] = tst_output[0].flatten()[0]
 #     SHarr[pp] = tst_output[1].flatten()[0]
 
+a = time.time()
 inarray = np.zeros((spec.size-spec_len-1, spec_len, 1))
 wa = np.arange(2, spec.size-2).reshape((inarray.shape[0],1))
 df = np.arange(-(spec_len-1)//2,spec_len//2+1).reshape((1,spec_len))
@@ -117,6 +120,7 @@ inarray[:,:,0] = spec[wa+df]
 tst_output = gpumodel.predict(tst_input)
 IDarr = tst_output[0].flatten()
 SHarr = tst_output[1].flatten()
+print("time/spec =", time.time()-a)
 
 np.savetxt("test_spec/results.dat", np.transpose((wave/(1+zval), spec, IDarr, SHarr)))
 print(zval)
