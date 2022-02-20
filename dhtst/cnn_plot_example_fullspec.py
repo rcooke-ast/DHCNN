@@ -103,12 +103,20 @@ allWave, allFlux, allFlue, allStat, allzem = load_dataset_trueqsos()
 wave, spec, zval = yield_data_trueqso(allWave, allFlux, allFlue, allStat, allzem, batch_sz, spec_len)
 IDarr, SHarr = np.zeros(wave.size), np.zeros(wave.size)
 tst_input = ({})
-for pp in range(spec_len//2, spec.size-spec_len//2):
-    if pp%100==0: print(pp, spec_len//2, spec.size-spec_len//2)
-    tst_input['input_1'] = spec[pp-spec_len//2:pp-spec_len//2 + spec_len].reshape((1, spec_len, 1))
-    tst_output = gpumodel.predict(tst_input)
-    IDarr[pp] = tst_output[0].flatten()[0]
-    SHarr[pp] = tst_output[1].flatten()[0]
+# for pp in range(spec_len//2, spec.size-spec_len//2):
+#     if pp%100==0: print(pp, spec_len//2, spec.size-spec_len//2)
+#     tst_input['input_1'] = spec[pp-spec_len//2:pp-spec_len//2 + spec_len].reshape((1, spec_len, 1))
+#     tst_output = gpumodel.predict(tst_input)
+#     IDarr[pp] = tst_output[0].flatten()[0]
+#     SHarr[pp] = tst_output[1].flatten()[0]
+
+inarray = np.zeros((spec.size-spec_len-1, spec_len, 1))
+wa = np.arange(2, spec.size-2).reshape((inarray.shape[0],1))
+df = np.arange(-(spec_len-1)//2,spec_len//2+1).reshape((1,spec_len))
+inarray[:,:,0] = spec[wa+df]
+tst_output = gpumodel.predict(tst_input)
+IDarr = tst_output[0].flatten()
+SHarr = tst_output[1].flatten()
 
 np.savetxt("test_spec/results.dat", np.transpose((wave/(1+zval), spec, IDarr, SHarr)))
 print(zval)
