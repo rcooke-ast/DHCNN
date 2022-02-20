@@ -121,11 +121,10 @@ df = np.arange(-offs,spec_len//2+1).reshape((1,spec_len))
 inarray[:,:,0] = spec[wa+df]
 tst_input['input_1'] = inarray
 tst_output = gpumodel.predict(tst_input)
-IDarr = tst_output[0].flatten()
-SHarr = tst_output[1].flatten()
+IDarr[offs:spec.size-offs] = tst_output[0].flatten()
+SHarr[offs:spec.size-offs] = tst_output[1].flatten()
 print("time/spec =", time.time()-a)
 
-embed()
 np.savetxt("test_spec/results.dat", np.transpose((wave/(1+zval), spec, IDarr, SHarr)))
 print(zval)
 wavplt = wave/(1+zval)
