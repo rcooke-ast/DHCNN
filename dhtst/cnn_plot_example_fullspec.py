@@ -113,7 +113,7 @@ for pp in range(spec_len//2, spec.size-spec_len//2):
 np.savetxt("test_spec/results.dat", np.transpose((wave/(1+zval), spec, IDarr, SHarr)))
 print(zval)
 wavplt = wave/(1+zval)
-fig, axs = plt.subplots(311, sharex=True)
+fig, axs = plt.subplots(3,1, sharex=True)
 axs[0].plot(wavplt, spec, 'k-')
 axs[0].axvline(LyaD, color='r')
 axs[1].plot(wavplt, IDarr, 'k-')
