@@ -69,8 +69,8 @@ def load_all_quasars():
         if ww[0].size < spec_len:
             continue
         # If we've made it to hear, then we need to predict on this QSO. Add it to the list.
-        all_wave.append(newwave.copy())
-        all_flux.append(newflux.copy())
+        all_wave.append(newwave[ww].copy())
+        all_flux.append(newflux[ww].copy())
         all_name.append(t_trim[qq]['Name_Adopt'])
     return all_wave, all_flux, all_name
 
