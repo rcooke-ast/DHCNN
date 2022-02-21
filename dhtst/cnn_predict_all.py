@@ -57,7 +57,10 @@ def load_all_quasars():
             newwave, newflux = redisperse(wave, flux)
         else:
             newwave, newflux = wave.copy(), flux.copy()
-        ww = np.where(newwave < 1215.6701*(1+zem))
+        try:
+            ww = np.where(newwave < 1215.6701*(1+zem))
+        except:
+            embed()
         if ww[0].size < spec_len:
             continue
         # If we've made it to hear, then we need to predict on this QSO. Add it to the list.
