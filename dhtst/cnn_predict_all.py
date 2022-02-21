@@ -7,6 +7,7 @@ from tensorflow.python.keras.models import load_model
 from cnn_train import get_available_gpus, load_dataset_trueqsos
 from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
 from IPython import embed
+from matplotlib import pyplot as plt
 
 
 # Now start the calculation...
@@ -125,6 +126,16 @@ for qso in range(nqso):
         catalogue['name'].append(allName[qso])
         catalogue['prob'].append(prob)
         catalogue['zabs'].append(zabs)
+        print(allName[qso], prob, zabs)
+        fig, axs = plt.subplots(3, 1, sharex=True)
+        axs[0].plot(wave[pix]/(1+zabs), flux[pix], 'k-')
+        axs[0].axvline(LyaD, color='r')
+        axs[1].plot(wave[pix]/(1+zabs), IDarr[pix], 'k-')
+        axs[1].axvline(LyaD, color='r')
+        axs[2].plot(wave[pix]/(1+zabs), SHarr[pix], 'k-')
+        axs[2].axvline(LyaD, color='r')
+        plt.show()
+        plt.clf()
         cntr += 1
         # Update the mask
         msk[ws] = 1
