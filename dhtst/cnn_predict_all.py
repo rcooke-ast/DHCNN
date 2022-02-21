@@ -115,6 +115,7 @@ for qso in range(nqso):
     ww = np.where(IDarr > 0.1)[0]
     if ww.size == 0: continue
     msk = np.zeros(ww.size)
+    embed()
     while True:
         wmin = np.where(msk == 0)[0]
         ws = np.where((ww > ww[wmin]-30) & (ww < ww[wmin]+30))
@@ -122,7 +123,7 @@ for qso in range(nqso):
         prob = np.mean(IDarr[pix])
         dwav = (velstep/299792.458)*wave[ww[wmin]]
         wcen = wave[pix] + dwav*SHarr[pix]
-        zabs = wcen/LyaD - 1
+        zabs = np.mean(wcen/LyaD - 1)
         catalogue['name'].append(allName[qso])
         catalogue['prob'].append(prob)
         catalogue['zabs'].append(zabs)
