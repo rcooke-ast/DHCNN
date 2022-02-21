@@ -36,7 +36,7 @@ def redisperse(wave, flux):
 
 
 def load_all_quasars():
-    t = Table.read('DR1_quasars_master.csv', format='ascii.csv')
+    t = Table.read('../data/DR1_quasars_master.csv', format='ascii.csv')
     t_trim = t[np.where((t['zem_Adopt'].data > 1.5) & (t['zem_Adopt'].data < 5.0))]
     nqso = t_trim['Name_Adopt'].size
     all_wave, all_flux, all_name = [], [], []
