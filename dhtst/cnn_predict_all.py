@@ -32,7 +32,7 @@ def redisperse(wave, flux):
 
     # Resample the data
     newspec = spec.rebin(newwave * units.AA)
-    return newspec.wavelength, newspec.flux
+    return newspec.wavelength.value, newspec.flux.value
 
 
 def load_all_quasars():
