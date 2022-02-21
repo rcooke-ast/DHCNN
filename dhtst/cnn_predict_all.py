@@ -49,12 +49,12 @@ def load_all_quasars():
         dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
         wave = dat[1].data['WAVE']
         flux = dat[1].data['FLUX']
+        if wave.shape[0] != 1: embed()
+        wave = wave[0,:]
+        flux = flux[0, :]
         # Redisperse
         if disp != velstep:
-            try:
-                newwave, newflux = redisperse(wave, flux)
-            except:
-                embed()
+            newwave, newflux = redisperse(wave, flux)
         else:
             newwave, newflux = wave.copy(), flux.copy()
         ww = np.where(newwave < 1215.6701*(1+zem))
