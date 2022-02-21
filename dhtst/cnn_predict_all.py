@@ -49,6 +49,7 @@ def load_all_quasars():
         try:
             dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
         except FileNotFoundError:
+            print("File not found: ", qso['Name_Adopt'])
             continue
         wave = dat[1].data['WAVE']
         flux = dat[1].data['FLUX']
@@ -121,13 +122,13 @@ for qso in range(nqso):
         dwav = (velstep/299792.458)*wave[ww[wmin]]
         wcen = wave[pix] + dwav*SHarr[pix]
         zabs = wcen/LyaD - 1
-        # Update the mask
-        msk[ws] = 1
-        if np.all(msk): break
         catalogue['name'].append(allName[qso])
         catalogue['prob'].append(prob)
         catalogue['zabs'].append(zabs)
         cntr += 1
+        # Update the mask
+        msk[ws] = 1
+        if np.all(msk): break
     print("Candidates found so far = ", cntr)
 
 catout = open("DI_catalogue.dat", 'w')
