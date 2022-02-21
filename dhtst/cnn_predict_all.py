@@ -101,7 +101,7 @@ for qso in range(nqso):
     IDarr[offs:flux.size-offs] = tst_output[0].flatten()
     SHarr[offs:flux.size-offs] = tst_output[1].flatten()
     # Parse the IDarr to find all suitable systems and store in an array.
-    ww = np.where(IDarr > 0.3)[0]
+    ww = np.where(IDarr > 0.1)[0]
     if ww.size == 0: continue
     msk = np.zeros(ww.size)
     while True:
