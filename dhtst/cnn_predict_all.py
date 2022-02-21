@@ -96,6 +96,7 @@ nqso = len(allWave)
 tst_input = ({})
 offs = (spec_len-1)//2
 catalogue = dict(name=[], prob=[], zabs=[])
+# fig, axs = plt.subplots(3, 1, sharex=True)
 for qso in range(nqso):
     print("Searching QSO =", allName[qso])
     # Load a quasar spectrum
@@ -112,12 +113,19 @@ for qso in range(nqso):
     IDarr[offs:flux.size-offs] = tst_output[0].flatten()
     SHarr[offs:flux.size-offs] = tst_output[1].flatten()
     # Parse the IDarr to find all suitable systems and store in an array.
-    ww = np.where(IDarr > 0.1)[0]
+    ww = np.where(IDarr > 0.5)[0]
     if ww.size == 0: continue
     msk = np.zeros(ww.size)
-    embed()
+    # embed()
+    # axs[0].plot(wave / (1 + zabs), flux, 'k-')
+    # axs[0].axvline(LyaD, color='r')
+    # axs[1].plot(wave / (1 + zabs), IDarr, 'k-')
+    # axs[1].axvline(LyaD, color='r')
+    # axs[2].plot(wave / (1 + zabs), SHarr, 'k-')
+    # axs[2].axvline(LyaD, color='r')
+    # plt.show()
     while True:
-        wmin = np.where(msk == 0)[0]
+        wmin = np.where(msk == 0)[0][0]
         ws = np.where((ww > ww[wmin]-30) & (ww < ww[wmin]+30))
         pix = ww[ws]
         prob = np.mean(IDarr[pix])
@@ -127,16 +135,15 @@ for qso in range(nqso):
         catalogue['name'].append(allName[qso])
         catalogue['prob'].append(prob)
         catalogue['zabs'].append(zabs)
-        print(allName[qso], prob, zabs)
-        fig, axs = plt.subplots(3, 1, sharex=True)
-        axs[0].plot(wave[pix]/(1+zabs), flux[pix], 'k-')
-        axs[0].axvline(LyaD, color='r')
-        axs[1].plot(wave[pix]/(1+zabs), IDarr[pix], 'k-')
-        axs[1].axvline(LyaD, color='r')
-        axs[2].plot(wave[pix]/(1+zabs), SHarr[pix], 'k-')
-        axs[2].axvline(LyaD, color='r')
-        plt.show()
-        plt.clf()
+        # print(allName[qso], prob, zabs)
+        # axs[0].plot(wave[pix]/(1+zabs), flux[pix], 'k-')
+        # axs[0].axvline(LyaD, color='r')
+        # axs[1].plot(wave[pix]/(1+zabs), IDarr[pix], 'k-')
+        # axs[1].axvline(LyaD, color='r')
+        # axs[2].plot(wave[pix]/(1+zabs), SHarr[pix], 'k-')
+        # axs[2].axvline(LyaD, color='r')
+        # plt.show()
+        # plt.clf()
         cntr += 1
         # Update the mask
         msk[ws] = 1
