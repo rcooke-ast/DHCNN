@@ -51,7 +51,10 @@ def load_all_quasars():
         flux = dat[1].data['FLUX']
         # Redisperse
         if disp != velstep:
-            newwave, newflux = redisperse(wave, flux)
+            try:
+                newwave, newflux = redisperse(wave, flux)
+            except:
+                embed()
         else:
             newwave, newflux = wave.copy(), flux.copy()
         ww = np.where(newwave < 1215.6701*(1+zem))
