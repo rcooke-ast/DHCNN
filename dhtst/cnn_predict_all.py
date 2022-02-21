@@ -46,7 +46,10 @@ def load_all_quasars():
         disp = qso['Dispersion']
         zem = qso['zem_Adopt']
         # Load the data
-        dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
+        try:
+            dat = fits.open("../data/{0:s}.fits".format(qso['Name_Adopt']))
+        except FileNotFoundError:
+            continue
         wave = dat[1].data['WAVE']
         flux = dat[1].data['FLUX']
         if wave.shape[0] != 1: embed()
